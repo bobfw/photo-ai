@@ -20,6 +20,12 @@ this single package.
 - local secrets: `.dev.vars` (never commit)
 - vouchers: `pnpm voucher:create -- --total 5 --count 10`
 
+## Scripts
+
+- Instagram posts: `node scripts/spider/instagram.ts <post-url>` prints the image URLs.
+  Download them into `reference-images/<source>/<group>/` and add a matching entry to
+  `reference-images/groups.json` (the directory is local-only, not committed).
+
 ## Mobile
 
 Most users are on phones. Design mobile-first and check the page at phone width (≈390px)

@@ -11,3 +11,6 @@ dist-ssr
 
 # Pinterest reference images (not for commit)
 korean-wedding-pinterest/
+
+# Downloaded reference images (not for commit)
+reference-images/
