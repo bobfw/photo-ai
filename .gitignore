@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+
+.tanstack
+.wrangler
+.dev.vars
+.DS_Store
