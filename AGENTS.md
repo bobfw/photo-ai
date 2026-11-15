@@ -24,7 +24,11 @@ this single package.
 
 - Instagram posts: `node scripts/spider/instagram.ts <post-url>` prints the image URLs.
   Download them into `reference-images/<source>/<group>/` and add a matching entry to
-  `reference-images/groups.json` (the directory is local-only, not committed).
+  `src/routes/wedding/-internal/services/groups.json` (images are local-only, the manifest
+  is committed).
+- Reference images: `pnpm references:seed` uploads every image listed in
+  `src/routes/wedding/-internal/services/groups.json` to the local R2 bucket; add
+  `-- --remote` for production.
 
 ## Mobile
 

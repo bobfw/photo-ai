@@ -4,11 +4,12 @@ import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "#ui/button";
+import { toast } from "#ui/toast";
 
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
+import { ReferencePicker } from "./-internal/components/reference-picker.tsx";
 import { ResultCard } from "./-internal/components/result-card.tsx";
-import { ScenePicker } from "./-internal/components/scene-picker.tsx";
-import { WEDDING_SCENES } from "./-internal/services/scenes.ts";
+import { REFERENCE_GROUPS } from "./-internal/services/references.ts";
 import { generateWedding, getVoucherState } from "./-internal/services/wedding.ts";
 
 /* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
@@ -42,24 +43,55 @@ function WeddingPage() {
 
 function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   const router = useRouter();
-  const [sceneId, setSceneId] = useState<string>(WEDDING_SCENES[0].id);
+  const [selected, setSelected] = useState<string[]>([]);
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
+  const maxSelectable = Math.min(state.remaining, REFERENCE_GROUPS.length);
+
+  function toggleReference(key: string) {
+    if (selected.includes(key)) {
+      setSelected((current) => current.filter((item) => item !== key));
+      return;
+    }
+    if (selected.length >= maxSelectable) {
+      toast.add({
+        title: maxSelectable === 0 ? "照片额度已用完" : `最多只能选择 ${maxSelectable} 张参考图`,
+        type: "warning",
+      });
+      return;
+    }
+    setSelected((current) => [...current, key]);
+  }
 
   const generateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (photoA === "" || photoB === "") {
         throw new Error("请上传女生和男生的照片");
       }
-      return generateWedding({ data: { code, sceneId, faces: [photoA, photoB] } });
+      if (selected.length === 0) {
+        throw new Error("请选择至少一张参考图");
+      }
+      const results = await Promise.allSettled(
+        selected.map((reference) =>
+          generateWedding({ data: { code, reference, faces: [photoA, photoB] } }),
+        ),
+      );
+      const failed = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failed) throw failed.reason;
     },
-    onSuccess: () => {
+    onSettled: () => {
       void router.invalidate();
     },
   });
 
   const canGenerate =
-    state.remaining > 0 && photoA !== "" && photoB !== "" && !generateMutation.isPending;
+    state.remaining > 0 &&
+    photoA !== "" &&
+    photoB !== "" &&
+    selected.length > 0 &&
+    !generateMutation.isPending;
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-10">
@@ -67,7 +99,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <div className="space-y-1">
           <h1 className="font-heading text-3xl font-semibold tracking-tight">出片 · 婚纱照</h1>
           <p className="text-muted-foreground text-sm">
-            上传正脸照片，选择场景，生成属于你们的婚纱照。
+            上传正脸照片，选择参考图，生成属于你们的婚纱照。
           </p>
         </div>
         <span className="bg-muted rounded-full px-3 py-1 text-xs">
@@ -87,8 +119,13 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">2. 选择场景</h2>
-        <ScenePicker onChange={setSceneId} value={sceneId} />
+        <h2 className="text-sm font-semibold">2. 选择参考图</h2>
+        <ReferencePicker
+          groups={REFERENCE_GROUPS}
+          max={maxSelectable}
+          onToggle={toggleReference}
+          selected={selected}
+        />
       </section>
 
       <section className="space-y-3">
@@ -101,7 +138,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           size="lg"
           type="button"
         >
-          {generateButtonLabel(generateMutation.isPending, state.remaining)}
+          {generateButtonLabel(generateMutation.isPending, state.remaining, selected.length)}
         </Button>
         {generateMutation.error ? (
           <p className="text-destructive text-sm">{generateMutation.error.message}</p>
@@ -122,10 +159,11 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   );
 }
 
-function generateButtonLabel(isPending: boolean, remaining: number) {
-  if (isPending) return "生成中…（可能需要 1–3 分钟）";
+function generateButtonLabel(isPending: boolean, remaining: number, count: number) {
+  if (isPending) return `生成中…（${count} 张，可能需要 1–3 分钟）`;
   if (remaining === 0) return "照片额度已用完";
-  return "生成婚纱照";
+  if (count === 0) return "生成婚纱照";
+  return `生成 ${count} 张婚纱照`;
 }
 
 function CenteredMessage({ children }: { children: ReactNode }) {

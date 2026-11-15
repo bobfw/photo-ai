@@ -18,7 +18,7 @@ export const generatedImages = sqliteTable(
       .references(() => vouchers.id),
     storageKey: text("storage_key").notNull(),
     faceKeys: text("face_keys").notNull(),
-    sceneId: text("scene_id").notNull(),
+    referenceKey: text("reference_key").notNull(),
     mode: text("mode").notNull(),
     editCount: integer("edit_count").notNull().default(0),
     createdAt: integer("created_at").notNull(),

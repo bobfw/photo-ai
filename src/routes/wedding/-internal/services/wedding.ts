@@ -9,7 +9,7 @@ import { database } from "#services/database";
 import { generatedImages, vouchers } from "#services/schema";
 import { deleteImage, extensionFor, getImage, publicImageUrl, putImage } from "#services/storage";
 
-import { findWeddingScene } from "./scenes.ts";
+import { findReference } from "./references.ts";
 
 const VOUCHER_TYPE = "wedding";
 const WEDDING_MODEL = "bytedance-seed/seedream-5-5";
@@ -28,7 +28,7 @@ const voucherInput = z.object({ code: codeSchema });
 
 const generateInput = z.object({
   code: codeSchema,
-  sceneId: z.string().min(1, "请选择拍摄场景"),
+  reference: z.string().min(1, "请选择参考图").max(200, "参考图地址不正确"),
   faces: z.array(faceSchema).length(2, "双人婚纱照需要上传两张照片"),
 });
 
@@ -41,7 +41,7 @@ const editInput = z.object({
 export interface PublicImage {
   id: number;
   url: string;
-  sceneId: string;
+  referenceKey: string;
   editCount: number;
   remainingEdits: number;
   createdAt: number;
@@ -91,7 +91,7 @@ function toPublicImage(row: typeof generatedImages.$inferSelect): PublicImage {
   return {
     id: row.id,
     url: publicImageUrl(row.storageKey),
-    sceneId: row.sceneId,
+    referenceKey: row.referenceKey,
     editCount: row.editCount,
     remainingEdits: Math.max(0, MAX_EDITS - row.editCount),
     createdAt: row.createdAt,
@@ -140,8 +140,8 @@ export const getVoucherState = createServerFn({ method: "POST" })
 export const generateWedding = createServerFn({ method: "POST" })
   .validator((data) => generateInput.parse(data))
   .handler(async ({ data }): Promise<PublicImage> => {
-    const scene = findWeddingScene(data.sceneId);
-    if (!scene) throw new Error("请选择拍摄场景");
+    const referenceImage = findReference(data.reference);
+    if (!referenceImage) throw new Error("参考图不存在");
 
     const voucher = await loadVoucher(data.code);
     if (!voucher) throw new Error("凭证无效");
@@ -169,13 +169,10 @@ export const generateWedding = createServerFn({ method: "POST" })
         faceKeys.push(key);
       }
 
+      const reference = await loadAsDataUrl(referenceImage.key);
       const image = await generateWeddingImage({
         faces: data.faces,
-        scene: {
-          description: scene.description,
-          brideAttire: scene.brideAttire,
-          groomAttire: scene.groomAttire,
-        },
+        reference,
         model: WEDDING_MODEL,
         apiKey: env.OPENROUTER_API_KEY,
       });
@@ -190,7 +187,7 @@ export const generateWedding = createServerFn({ method: "POST" })
           voucherId: voucher.id,
           storageKey: outputKey,
           faceKeys: JSON.stringify(faceKeys),
-          sceneId: scene.id,
+          referenceKey: data.reference,
           mode: "couple",
           editCount: 0,
           createdAt,
@@ -231,9 +228,6 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
     if (row.expiresAt <= Date.now()) throw new Error("照片已过期");
     if (row.editCount >= MAX_EDITS) throw new Error(`每张照片最多修改 ${MAX_EDITS} 次`);
 
-    const scene = findWeddingScene(row.sceneId);
-    if (!scene) throw new Error("照片场景不存在");
-
     // 先原子占用一次修改次数，失败再退还。
     const reserved = await database.run(sql`
       UPDATE generated_images
@@ -251,11 +245,6 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
       const image = await editWeddingImage({
         photo,
         faces,
-        scene: {
-          description: scene.description,
-          brideAttire: scene.brideAttire,
-          groomAttire: scene.groomAttire,
-        },
         instruction: data.instruction,
         model: WEDDING_MODEL,
         apiKey: env.OPENROUTER_API_KEY,

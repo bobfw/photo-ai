@@ -1,0 +1,1 @@
+ALTER TABLE `generated_images` RENAME COLUMN `scene_id` TO `reference_key`;

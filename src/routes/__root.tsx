@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 
 import { Button } from "#ui/button";
+import { Toaster } from "#ui/toast";
 
 import "../styles/globals.css";
 
@@ -31,6 +32,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster />
         <Scripts />
       </body>
     </html>

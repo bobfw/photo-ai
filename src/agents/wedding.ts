@@ -1,9 +1,5 @@
 import { generatePhotoBytes } from "./generate-photo.ts";
-import {
-  buildWeddingEditInstruction,
-  buildWeddingInstruction,
-  type WeddingScene,
-} from "./wedding-prompts.ts";
+import { buildWeddingEditInstruction, buildWeddingInstruction } from "./wedding-prompts.ts";
 
 const WEDDING_SIZE = "1536x2048";
 
@@ -12,17 +8,15 @@ interface WeddingImage {
   mediaType: string;
 }
 
-interface WeddingBaseInput {
+/**
+ * 生成一张婚纱照：用新娘、新郎两张面部参考，加上一张场景与造型参考图。
+ */
+export async function generateWeddingImage(input: {
   faces: string[];
-  scene: WeddingScene;
+  reference: string;
   model: string;
   apiKey: string;
-}
-
-/**
- * 生成一张婚纱照：用新娘、新郎两张面部参考。
- */
-export async function generateWeddingImage(input: WeddingBaseInput): Promise<WeddingImage> {
+}): Promise<WeddingImage> {
   const { text, references } = buildWeddingInstruction(input);
   return generate(text, references, input.model, input.apiKey);
 }
@@ -30,9 +24,13 @@ export async function generateWeddingImage(input: WeddingBaseInput): Promise<Wed
 /**
  * 按文字描述修改已生成的婚纱照，同时用原始面部参考保持人物身份。
  */
-export async function editWeddingImage(
-  input: WeddingBaseInput & { photo: string; instruction: string },
-): Promise<WeddingImage> {
+export async function editWeddingImage(input: {
+  photo: string;
+  faces: string[];
+  instruction: string;
+  model: string;
+  apiKey: string;
+}): Promise<WeddingImage> {
   const { text, references } = buildWeddingEditInstruction(input);
   return generate(text, references, input.model, input.apiKey);
 }

@@ -18,6 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply likeness --local",
     "db:migrate:remote": "wrangler d1 migrations apply likeness --remote",
+    "references:seed": "node scripts/seed-references.ts",
     "voucher:create": "node scripts/create-voucher.ts",
     "voucher:link": "node scripts/create-voucher-link.ts",
     "cf-typegen": "wrangler types"

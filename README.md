@@ -9,6 +9,7 @@ cp .dev.vars.example .dev.vars   # 填入 OPENROUTER_API_KEY
 pnpm install
 pnpm cf-typegen                  # 生成 worker-configuration.d.ts
 pnpm db:migrate                  # 本地 D1 迁移
+pnpm references:seed             # 把参考图上传到本地 R2（线上用 -- --remote）
 pnpm dev                         # http://localhost:5701
 pnpm voucher:create -- --total 3 --count 5
 ```

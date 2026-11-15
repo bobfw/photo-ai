@@ -1,9 +1,3 @@
-export interface WeddingScene {
-  description: string;
-  brideAttire: string;
-  groomAttire: string;
-}
-
 export interface BuiltWeddingInstruction {
   text: string;
   references: string[];
@@ -34,20 +28,20 @@ function identitySection(label: string, figure: string) {
   ].join("\n");
 }
 
-function weddingAttireSection(scene: WeddingScene) {
+function referenceSection() {
   return [
-    "【婚礼造型】",
-    `图 1 的新娘穿${scene.brideAttire}；图 2 的新郎穿${scene.groomAttire}。`,
-    "两人的服装结构必须完整、真实，符合各自的人体和婚礼着装规范；不得出现现代便装、运动鞋或与婚礼无关的配饰。",
-    "两人的妆容和发型分别按新娘、新郎的婚礼造型处理，但五官身份必须严格来自各自的参考图。",
+    "【场景与造型参考】",
+    "图 3 是场景与造型参考：画面背景、空间环境、光线方向与色温、整体色调和构图氛围都参考图 3。",
+    "新娘婚纱、新郎礼服的风格与配色参考图 3 的婚礼造型，服装结构必须完整、真实，符合各自的人体和婚礼着装规范；不得出现现代便装、运动鞋或与婚礼无关的配饰。",
+    "图 3 中的人物只用于理解场景与造型，不得复制其面部身份、五官、人数或长相；画面中只出现图 1 和图 2 对应的两个人。",
+    "两人的妆容和发型按图 3 的婚礼造型风格处理，但五官身份必须严格来自图 1 和图 2。",
   ].join("\n");
 }
 
-function sceneSection(scene: WeddingScene) {
+function sceneSection() {
   return [
     "【场景】",
-    `${scene.description}。`,
-    "场景是人物真实所处的环境，具有正确的透视、空间层次、景深和光线；人物自然融入场景，与背景的光线、色调和天气一致。",
+    "场景是人物真实所处的环境，具有正确的透视、空间层次、景深和光线；人物自然融入图 3 的场景，与背景的光线、色调和天气一致。",
   ].join("\n");
 }
 
@@ -62,7 +56,7 @@ function coupleSection() {
 function poseSection() {
   return [
     "【姿态与表情】",
-    "两人呈现自然的婚礼互动：站位靠近，身体朝向和视线彼此呼应，姿态亲密但自然，不僵硬、不刻意摆拍。",
+    "两人呈现自然的婚礼互动，姿态参考图 3 的氛围：站位靠近，身体朝向和视线彼此呼应，姿态亲密但自然，不僵硬、不刻意摆拍。",
     "两人的手部动作清晰合理，不得出现手指粘连、穿模、多出来的手，也不得让一方的肢体穿透另一方的身体或服装。",
     "两人的面部都必须清晰可见，表情自然，不允许因为互动而遮挡其中一方的脸。",
   ].join("\n");
@@ -70,22 +64,22 @@ function poseSection() {
 
 export function buildWeddingInstruction(input: {
   faces: string[];
-  scene: WeddingScene;
+  reference: string;
 }): BuiltWeddingInstruction {
-  const { faces, scene } = input;
+  const { faces, reference } = input;
 
   if (faces.length !== 2) throw new Error("双人模式需要两张人物照片");
 
   return {
-    references: faces,
+    references: [...faces, reference],
     text: [
-      "参考图对应关系：图 1 是新娘面部参考；图 2 是新郎面部参考。",
-      "【任务】生成一张真实摄影水准的双人婚纱照，画面中的新娘身份来自图 1，新郎身份来自图 2，场景为婚礼场景。",
+      "参考图对应关系：图 1 是新娘面部参考；图 2 是新郎面部参考；图 3 是场景与造型参考。",
+      "【任务】生成一张真实摄影水准的双人婚纱照：画面中的新娘身份来自图 1，新郎身份来自图 2，场景与婚礼造型参考图 3。",
       coupleSection(),
       identitySection("新娘", "图 1"),
       identitySection("新郎", "图 2"),
-      weddingAttireSection(scene),
-      sceneSection(scene),
+      referenceSection(),
+      sceneSection(),
       poseSection(),
       CAMERA,
       PHOTOGRAPHIC_REALISM,
@@ -96,10 +90,9 @@ export function buildWeddingInstruction(input: {
 export function buildWeddingEditInstruction(input: {
   photo: string;
   faces: string[];
-  scene: WeddingScene;
   instruction: string;
 }): BuiltWeddingInstruction {
-  const { photo, faces, scene, instruction } = input;
+  const { photo, faces, instruction } = input;
   if (faces.length === 0) throw new Error("缺少人物参考照片");
 
   const labels = ["新娘", "新郎"];
@@ -119,9 +112,6 @@ export function buildWeddingEditInstruction(input: {
       "除上述要求涉及的内容外，其余一切必须与图 1 完全一致：人物身份、面部五官、妆容、发型、婚礼服装、场景、光线、构图、机位、姿势、表情以及画面中的其他元素都保持原样。",
       `修改后的人物仍必须与${faceFigures.join("、")}是同一个人，五官、脸型和身份特征不得改变。`,
       "如果修改要求与保留人物身份或婚纱照属性冲突，以保留人物身份和婚礼摄影属性为前提，只实现要求中不冲突的部分。",
-      "【场景与服装】",
-      `未被修改要求涉及的场景细节保持为：${scene.description}。`,
-      `未被修改要求涉及的服装保持为：新娘${scene.brideAttire}，新郎${scene.groomAttire}。`,
       PHOTOGRAPHIC_REALISM,
     ].join("\n\n"),
   };
