@@ -1,17 +1,21 @@
-import { useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
 
 import { Button } from "#ui/button";
 import { Card, CardContent } from "#ui/card";
 import { Input } from "#ui/input";
 
-interface VoucherGateProperties {
-  error?: string;
-}
+export const Route = createFileRoute("/voucher")({
+  validateSearch: z.object({ error: z.literal("invalid").optional() }),
+  component: VoucherPage,
+});
 
-export function VoucherGate({ error }: VoucherGateProperties) {
+function VoucherPage() {
   const navigate = useNavigate();
+  const { error: redirectError } = Route.useSearch();
   const [code, setCode] = useState("");
+  const [error, setError] = useState(redirectError === "invalid" ? "凭证无效，请检查后重试" : "");
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-16">
@@ -26,7 +30,12 @@ export function VoucherGate({ error }: VoucherGateProperties) {
             onSubmit={(event) => {
               event.preventDefault();
               const value = code.trim();
-              if (value) void navigate({ to: "/", search: { code: value } });
+              if (!value) return;
+              if (!z.uuidv7().safeParse(value).success) {
+                setError("凭证码格式不正确，请检查后重试");
+                return;
+              }
+              void navigate({ to: "/wedding", search: { code: value } });
             }}
           >
             <label className="block space-y-1.5">

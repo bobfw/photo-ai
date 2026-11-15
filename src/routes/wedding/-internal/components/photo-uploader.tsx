@@ -60,7 +60,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
         <div className="space-y-2">
           <img
             alt={`${label}预览`}
-            className="aspect-[3/4] w-full rounded-lg object-cover"
+            className="aspect-3/4 w-full max-w-28 rounded-lg object-cover"
             src={value}
           />
           <div className="flex gap-2">
@@ -86,13 +86,12 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
         </div>
       ) : (
         <button
-          className="border-border bg-muted/30 hover:bg-muted/60 flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 text-center transition-colors"
+          className="border-border bg-muted/30 hover:bg-muted/60 flex h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 text-center transition-colors"
           onClick={() => inputReference.current?.click()}
           type="button"
         >
           <span className="text-3xl">＋</span>
           <span className="text-sm">点击上传照片</span>
-          <span className="text-muted-foreground text-xs">正脸、光线均匀、无遮挡</span>
         </button>
       )}
 

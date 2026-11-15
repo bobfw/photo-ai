@@ -20,6 +20,25 @@ this single package.
 - local secrets: `.dev.vars` (never commit)
 - vouchers: `pnpm voucher:create -- --total 5 --count 10`
 
+## Mobile
+
+Most users are on phones. Design mobile-first and check the page at phone width (≈390px)
+before desktop.
+
+- Touch targets ≥ 44×44px; nothing essential behind hover.
+- No horizontal page scroll; keep controls clear of the bottom safe area.
+- Prefer native mobile input behavior (e.g. `accept="image/*"` file inputs) over custom pickers.
+
+## Preview (MCP)
+
+`.mcp.json` runs the `chrome-devtools` MCP server against a Chromium browser that is
+already listening with remote debugging on `127.0.0.1:9222`. Use it to open the dev
+server, screenshot the page at phone width, and read console/network errors instead of
+judging UI from source alone.
+
+- The browser must be started with `--remote-debugging-port=9222`; the MCP tools connect
+  at session start, so restart Claude Code if the browser was down then.
+
 ## Cloudflare
 
 - Server code runs on Workers: no filesystem writes, and `process.env` is not available at

@@ -10,11 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VoucherRouteImport } from './routes/voucher'
 import { Route as MediaSplatRouteImport } from './routes/media/$'
+import { Route as WeddingIndexRouteImport } from './routes/wedding/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VoucherRoute = VoucherRouteImport.update({
+  id: '/voucher',
+  path: '/voucher',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
@@ -22,31 +29,44 @@ const MediaSplatRoute = MediaSplatRouteImport.update({
   path: '/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WeddingIndexRoute = WeddingIndexRouteImport.update({
+  id: '/wedding/',
+  path: '/wedding/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/voucher': typeof VoucherRoute
   '/media/$': typeof MediaSplatRoute
+  '/wedding/': typeof WeddingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/voucher': typeof VoucherRoute
   '/media/$': typeof MediaSplatRoute
+  '/wedding': typeof WeddingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/voucher': typeof VoucherRoute
   '/media/$': typeof MediaSplatRoute
+  '/wedding/': typeof WeddingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/media/$'
+  fullPaths: '/' | '/voucher' | '/media/$' | '/wedding/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/media/$'
-  id: '__root__' | '/' | '/media/$'
+  to: '/' | '/voucher' | '/media/$' | '/wedding'
+  id: '__root__' | '/' | '/voucher' | '/media/$' | '/wedding/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  VoucherRoute: typeof VoucherRoute
   MediaSplatRoute: typeof MediaSplatRoute
+  WeddingIndexRoute: typeof WeddingIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +78,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/voucher': {
+      id: '/voucher'
+      path: '/voucher'
+      fullPath: '/voucher'
+      preLoaderRoute: typeof VoucherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$': {
       id: '/media/$'
       path: '/media/$'
@@ -65,12 +92,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wedding/': {
+      id: '/wedding/'
+      path: '/wedding'
+      fullPath: '/wedding/'
+      preLoaderRoute: typeof WeddingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  VoucherRoute: VoucherRoute,
   MediaSplatRoute: MediaSplatRoute,
+  WeddingIndexRoute: WeddingIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Button } from "#ui/button";
@@ -13,7 +14,7 @@ interface ResultCardProperties {
 }
 
 export function ResultCard({ code, image }: ResultCardProperties) {
-  const queryClient = useQueryClient();
+  const router = useRouter();
   const [instruction, setInstruction] = useState("");
 
   const editMutation = useMutation({
@@ -21,7 +22,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
       editGeneratedImage({ data: { code, imageId: image.id, instruction: text } }),
     onSuccess: () => {
       setInstruction("");
-      void queryClient.invalidateQueries({ queryKey: ["voucher", code] });
+      void router.invalidate();
     },
   });
 
