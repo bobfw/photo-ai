@@ -20,7 +20,7 @@ function VoucherPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-16">
       <header className="mb-8 space-y-3 text-center">
-        <h1 className="font-heading text-4xl font-semibold tracking-tight">上相</h1>
+        <h1 className="font-heading text-4xl font-semibold tracking-tight">出片</h1>
         <p className="text-muted-foreground text-sm">AI 婚纱照 · 上传照片，生成属于你们的婚纱照</p>
       </header>
       <Card>

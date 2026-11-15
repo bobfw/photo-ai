@@ -65,7 +65,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
     <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">上相 · 婚纱照</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">出片 · 婚纱照</h1>
           <p className="text-muted-foreground text-sm">
             上传正脸照片，选择场景，生成属于你们的婚纱照。
           </p>

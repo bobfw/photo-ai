@@ -11,7 +11,7 @@ delegate to pnpm in this project.
 
 ## App
 
-Likeness（上相）is an **independent, public-facing app**: AI image generation starting with
+Likeness（出片）is an **independent, public-facing app**: AI image generation starting with
 wedding photos. It runs on Cloudflare Workers with D1 and R2 bindings; everything lives in
 this single package.
 

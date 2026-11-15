@@ -1,4 +1,4 @@
-# Likeness（上相）
+# Likeness（出片）
 
 AI 婚纱照生成，跑在 Cloudflare Workers 上（D1 + R2）。
 
