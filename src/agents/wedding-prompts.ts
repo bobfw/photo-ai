@@ -34,16 +34,7 @@ function identitySection(label: string, figure: string) {
   ].join("\n");
 }
 
-function weddingAttireSection(scene: WeddingScene, mode: "single" | "couple") {
-  if (mode === "single") {
-    return [
-      "【婚礼造型】",
-      `根据图 1 中人物的性别自然选择婚礼造型：女性穿${scene.brideAttire}，男性穿${scene.groomAttire}。`,
-      "服装结构必须完整、真实，符合人体和婚礼着装规范；不得出现现代便装、运动鞋或与婚礼无关的配饰。",
-      "妆容为精致但真实的婚礼妆造；发型可以按婚礼造型重新设计（盘发、披发、头纱等），但发色、发际线和发量必须与图 1 的人物一致。",
-    ].join("\n");
-  }
-
+function weddingAttireSection(scene: WeddingScene) {
   return [
     "【婚礼造型】",
     `图 1 的新娘穿${scene.brideAttire}；图 2 的新郎穿${scene.groomAttire}。`,
@@ -68,15 +59,7 @@ function coupleSection() {
   ].join("\n");
 }
 
-function poseSection(mode: "single" | "couple") {
-  if (mode === "single") {
-    return [
-      "【姿态与表情】",
-      "人物姿态自然、优雅、放松，符合婚纱摄影中常见的站姿或半身构图；表情自然微笑或安静凝视，不僵硬、不呆滞。",
-      "手部结构清晰，手指数量、关节和姿态自然；避免手指粘连、穿模或遮挡面部。",
-    ].join("\n");
-  }
-
+function poseSection() {
   return [
     "【姿态与表情】",
     "两人呈现自然的婚礼互动：站位靠近，身体朝向和视线彼此呼应，姿态亲密但自然，不僵硬、不刻意摆拍。",
@@ -86,29 +69,10 @@ function poseSection(mode: "single" | "couple") {
 }
 
 export function buildWeddingInstruction(input: {
-  mode: "single" | "couple";
   faces: string[];
   scene: WeddingScene;
 }): BuiltWeddingInstruction {
-  const { mode, faces, scene } = input;
-
-  if (mode === "single") {
-    if (faces.length !== 1) throw new Error("单人模式需要一张人物照片");
-
-    return {
-      references: faces,
-      text: [
-        "参考图对应关系：图 1 是人物面部参考。",
-        "【任务】生成一张真实摄影水准的婚纱照，画面中的人物身份来自图 1，场景为婚礼场景。",
-        identitySection("人物", "图 1"),
-        weddingAttireSection(scene, mode),
-        sceneSection(scene),
-        poseSection(mode),
-        CAMERA,
-        PHOTOGRAPHIC_REALISM,
-      ].join("\n\n"),
-    };
-  }
+  const { faces, scene } = input;
 
   if (faces.length !== 2) throw new Error("双人模式需要两张人物照片");
 
@@ -120,9 +84,9 @@ export function buildWeddingInstruction(input: {
       coupleSection(),
       identitySection("新娘", "图 1"),
       identitySection("新郎", "图 2"),
-      weddingAttireSection(scene, mode),
+      weddingAttireSection(scene),
       sceneSection(scene),
-      poseSection(mode),
+      poseSection(),
       CAMERA,
       PHOTOGRAPHIC_REALISM,
     ].join("\n\n"),
@@ -138,7 +102,7 @@ export function buildWeddingEditInstruction(input: {
   const { photo, faces, scene, instruction } = input;
   if (faces.length === 0) throw new Error("缺少人物参考照片");
 
-  const labels = faces.length === 2 ? ["新娘", "新郎"] : ["人物"];
+  const labels = ["新娘", "新郎"];
   const faceFigures = faces.map((_, index) => `图 ${index + 2}`);
   const description = [
     "图 1 是当前照片（底图）",

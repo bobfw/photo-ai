@@ -26,20 +26,11 @@ const faceSchema = z
 
 const voucherInput = z.object({ code: codeSchema });
 
-const generateInput = z.discriminatedUnion("mode", [
-  z.object({
-    code: codeSchema,
-    mode: z.literal("single"),
-    sceneId: z.string().min(1, "请选择拍摄场景"),
-    faces: z.array(faceSchema).length(1, "请上传一张照片"),
-  }),
-  z.object({
-    code: codeSchema,
-    mode: z.literal("couple"),
-    sceneId: z.string().min(1, "请选择拍摄场景"),
-    faces: z.array(faceSchema).length(2, "双人婚纱照需要上传两张照片"),
-  }),
-]);
+const generateInput = z.object({
+  code: codeSchema,
+  sceneId: z.string().min(1, "请选择拍摄场景"),
+  faces: z.array(faceSchema).length(2, "双人婚纱照需要上传两张照片"),
+});
 
 const editInput = z.object({
   code: codeSchema,
@@ -47,12 +38,9 @@ const editInput = z.object({
   instruction: z.string().trim().min(1, "请描述想怎么修改").max(500, "修改描述请控制在 500 字以内"),
 });
 
-type Mode = "single" | "couple";
-
 export interface PublicImage {
   id: number;
   url: string;
-  mode: Mode;
   sceneId: string;
   editCount: number;
   remainingEdits: number;
@@ -103,7 +91,6 @@ function toPublicImage(row: typeof generatedImages.$inferSelect): PublicImage {
   return {
     id: row.id,
     url: publicImageUrl(row.storageKey),
-    mode: row.mode === "couple" ? "couple" : "single",
     sceneId: row.sceneId,
     editCount: row.editCount,
     remainingEdits: Math.max(0, MAX_EDITS - row.editCount),
@@ -183,7 +170,6 @@ export const generateWedding = createServerFn({ method: "POST" })
       }
 
       const image = await generateWeddingImage({
-        mode: data.mode,
         faces: data.faces,
         scene: {
           description: scene.description,
@@ -205,7 +191,7 @@ export const generateWedding = createServerFn({ method: "POST" })
           storageKey: outputKey,
           faceKeys: JSON.stringify(faceKeys),
           sceneId: scene.id,
-          mode: data.mode,
+          mode: "couple",
           editCount: 0,
           createdAt,
           expiresAt: createdAt + IMAGE_TTL_MS,

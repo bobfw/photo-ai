@@ -20,11 +20,9 @@ interface WeddingBaseInput {
 }
 
 /**
- * 生成一张婚纱照：单人模式用一张面部参考，双人模式用新娘、新郎两张面部参考。
+ * 生成一张婚纱照：用新娘、新郎两张面部参考。
  */
-export async function generateWeddingImage(
-  input: WeddingBaseInput & { mode: "single" | "couple" },
-): Promise<WeddingImage> {
+export async function generateWeddingImage(input: WeddingBaseInput): Promise<WeddingImage> {
   const { text, references } = buildWeddingInstruction(input);
   return generate(text, references, input.model, input.apiKey);
 }

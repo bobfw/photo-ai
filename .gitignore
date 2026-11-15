@@ -8,3 +8,6 @@ dist-ssr
 .wrangler
 .dev.vars
 .DS_Store
+
+# Pinterest reference images (not for commit)
+korean-wedding-pinterest/
