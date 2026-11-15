@@ -99,16 +99,6 @@ function toPublicImage(row: typeof generatedImages.$inferSelect): PublicImage {
   };
 }
 
-function decodeDataUrl(face: string) {
-  const match = /^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/.exec(face);
-  if (!match) throw new Error("照片格式不支持，请上传 JPG、PNG 或 WebP");
-
-  const data = Buffer.from(match[2], "base64");
-  if (data.byteLength > MAX_IMAGE_BYTES) throw new Error("照片太大了，请压缩后重试");
-
-  return { data, contentType: match[1] === "image/jpg" ? "image/jpeg" : match[1] };
-}
-
 async function loadAsDataUrl(key: string) {
   const { data, contentType } = await getImage(key);
   return `data:${contentType};base64,${Buffer.from(data).toString("base64")}`;
@@ -155,20 +145,9 @@ export const generateWedding = createServerFn({ method: "POST" })
     `);
     if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
 
-    const faceKeys: string[] = [];
     let outputKey: string | undefined;
 
     try {
-      for (const face of data.faces) {
-        const { data: bytes, contentType } = decodeDataUrl(face);
-        const key = storageKey(
-          voucher.id,
-          `refs/${crypto.randomUUID()}.${extensionFor(contentType)}`,
-        );
-        await putImage(key, bytes, contentType);
-        faceKeys.push(key);
-      }
-
       const reference = await loadAsDataUrl(referenceImage.key);
       const image = await generateWeddingImage({
         faces: data.faces,
@@ -186,7 +165,7 @@ export const generateWedding = createServerFn({ method: "POST" })
         .values({
           voucherId: voucher.id,
           storageKey: outputKey,
-          faceKeys: JSON.stringify(faceKeys),
+          faceKeys: "[]",
           referenceKey: data.reference,
           mode: "couple",
           editCount: 0,
@@ -204,10 +183,7 @@ export const generateWedding = createServerFn({ method: "POST" })
         SET generated_count = generated_count - 1
         WHERE id = ${voucher.id} AND generated_count > 0
       `);
-      await Promise.all([
-        ...faceKeys.map((key) => deleteImage(key)),
-        ...(outputKey ? [deleteImage(outputKey)] : []),
-      ]);
+      if (outputKey) await deleteImage(outputKey);
       throw error;
     }
   });
@@ -240,11 +216,9 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
 
     try {
       const photo = await loadAsDataUrl(row.storageKey);
-      const faces = await Promise.all(parseFaceKeys(row.faceKeys).map((key) => loadAsDataUrl(key)));
 
       const image = await editWeddingImage({
         photo,
-        faces,
         instruction: data.instruction,
         model: WEDDING_MODEL,
         apiKey: env.OPENROUTER_API_KEY,

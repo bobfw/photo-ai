@@ -15,6 +15,7 @@ export default defineConfig({
   ],
   server: {
     port: 5701,
+    host: "0.0.0.0",
   },
   fmt: {
     sortImports: true,

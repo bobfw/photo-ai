@@ -108,14 +108,18 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">1. 上传照片</h2>
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold">1. 上传照片</h2>
+          <p className="text-muted-foreground text-xs">
+            <span className="text-foreground font-medium">隐私承诺：</span>
+            我们不会保存你上传的照片，仅用于本次生成。
+          </p>
+        </div>
         <div className="grid max-w-xl grid-cols-2 gap-4">
           <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
           <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
         </div>
-        <p className="text-muted-foreground text-xs">
-          请上传正脸、光线均匀、无遮挡的单人照片。照片仅用于本次生成，24 小时后自动删除。
-        </p>
+        <p className="text-muted-foreground text-xs">请上传正脸、光线均匀、无遮挡的单人照片。</p>
       </section>
 
       <section className="space-y-3">

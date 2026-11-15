@@ -22,11 +22,10 @@ export async function generateWeddingImage(input: {
 }
 
 /**
- * 按文字描述修改已生成的婚纱照，同时用原始面部参考保持人物身份。
+ * 按文字描述修改已生成的婚纱照。
  */
 export async function editWeddingImage(input: {
   photo: string;
-  faces: string[];
   instruction: string;
   model: string;
   apiKey: string;
