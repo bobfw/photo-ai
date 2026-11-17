@@ -1,18 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import { env } from "cloudflare:workers";
 import { and, desc, eq, gt, lt, sql } from "drizzle-orm";
-import { isString } from "es-toolkit";
 import { z } from "zod";
 
 import { editWeddingImage, generateWeddingImage } from "#agents/wedding";
 import { database } from "#services/database";
 import { generatedImages, vouchers } from "#services/schema";
-import { deleteImage, extensionFor, getImage, publicImageUrl, putImage } from "#services/storage";
+import { getImage } from "#services/storage";
 
 import { findReference } from "./references.ts";
 
 const VOUCHER_TYPE = "wedding";
-const WEDDING_MODEL = "bytedance-seed/seedream-5-5";
 const IMAGE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_EDITS = 5;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -48,49 +45,21 @@ export interface PublicImage {
   expiresAt: number;
 }
 
-function storageKey(voucherId: number, rest: string) {
-  return `wedding/${voucherId}/${rest}`;
-}
-
 async function loadVoucher(code: string) {
   const rows = await database.select().from(vouchers).where(eq(vouchers.code, code)).limit(1);
   const voucher = rows.at(0);
   return voucher?.type === VOUCHER_TYPE ? voucher : undefined;
 }
 
-function parseFaceKeys(json: string): string[] {
-  try {
-    const keys: unknown = JSON.parse(json);
-    return Array.isArray(keys) ? keys.filter((key) => isString(key)) : [];
-  } catch {
-    return [];
-  }
-}
-
 // ponytail: 每次访问时全表扫描过期记录；量大了再换成定时任务。
 async function cleanupExpiredImages() {
-  const now = Date.now();
-  const expired = await database
-    .select()
-    .from(generatedImages)
-    .where(lt(generatedImages.expiresAt, now));
-  if (expired.length === 0) return;
-
-  await Promise.all(
-    expired.map((row) =>
-      Promise.all([
-        deleteImage(row.storageKey),
-        ...parseFaceKeys(row.faceKeys).map((key) => deleteImage(key)),
-      ]),
-    ),
-  );
-  await database.delete(generatedImages).where(lt(generatedImages.expiresAt, now));
+  await database.delete(generatedImages).where(lt(generatedImages.expiresAt, Date.now()));
 }
 
 function toPublicImage(row: typeof generatedImages.$inferSelect): PublicImage {
   return {
     id: row.id,
-    url: publicImageUrl(row.storageKey),
+    url: row.imageUrl,
     referenceKey: row.referenceKey,
     editCount: row.editCount,
     remainingEdits: Math.max(0, MAX_EDITS - row.editCount),
@@ -145,26 +114,19 @@ export const generateWedding = createServerFn({ method: "POST" })
     `);
     if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
 
-    let outputKey: string | undefined;
-
     try {
       const reference = await loadAsDataUrl(referenceImage.key);
-      const image = await generateWeddingImage({
+      const imageUrl = await generateWeddingImage({
         faces: data.faces,
         reference,
-        model: WEDDING_MODEL,
-        apiKey: env.OPENROUTER_API_KEY,
       });
-
-      outputKey = storageKey(voucher.id, `${crypto.randomUUID()}.${extensionFor(image.mediaType)}`);
-      await putImage(outputKey, image.data, image.mediaType);
 
       const createdAt = Date.now();
       const inserted = await database
         .insert(generatedImages)
         .values({
           voucherId: voucher.id,
-          storageKey: outputKey,
+          imageUrl,
           faceKeys: "[]",
           referenceKey: data.reference,
           mode: "couple",
@@ -183,7 +145,6 @@ export const generateWedding = createServerFn({ method: "POST" })
         SET generated_count = generated_count - 1
         WHERE id = ${voucher.id} AND generated_count > 0
       `);
-      if (outputKey) await deleteImage(outputKey);
       throw error;
     }
   });
@@ -212,29 +173,20 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
     `);
     if (reserved.meta.changes === 0) throw new Error(`每张照片最多修改 ${MAX_EDITS} 次`);
 
-    let outputKey: string | undefined;
-
     try {
-      const photo = await loadAsDataUrl(row.storageKey);
-
-      const image = await editWeddingImage({
-        photo,
+      const imageUrl = await editWeddingImage({
+        photo: row.imageUrl,
         instruction: data.instruction,
-        model: WEDDING_MODEL,
-        apiKey: env.OPENROUTER_API_KEY,
       });
 
-      outputKey = storageKey(voucher.id, `${crypto.randomUUID()}.${extensionFor(image.mediaType)}`);
-      await putImage(outputKey, image.data, image.mediaType);
       await database
         .update(generatedImages)
-        .set({ storageKey: outputKey })
+        .set({ imageUrl })
         .where(eq(generatedImages.id, row.id));
-      await deleteImage(row.storageKey);
 
       return toPublicImage({
         ...row,
-        storageKey: outputKey,
+        imageUrl,
         editCount: row.editCount + 1,
       });
     } catch (error) {
@@ -243,7 +195,6 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
         SET edit_count = edit_count - 1
         WHERE id = ${row.id} AND edit_count > 0
       `);
-      if (outputKey) await deleteImage(outputKey);
       throw error;
     }
   });

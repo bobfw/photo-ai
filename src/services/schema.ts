@@ -17,7 +17,7 @@ export const generatedImages = sqliteTable(
     voucherId: integer("voucher_id")
       .notNull()
       .references(() => vouchers.id),
-    storageKey: text("storage_key").notNull(),
+    imageUrl: text("image_url").notNull(),
     faceKeys: text("face_keys").notNull(),
     referenceKey: text("reference_key").notNull(),
     mode: text("mode").notNull(),

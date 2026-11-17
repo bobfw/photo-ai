@@ -31,8 +31,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
   });
 
   const canEdit = image.remainingEdits > 0;
-  const extension = image.url.split(".").pop() ?? "jpg";
-  const filename = `婚纱照-${image.id}.${extension}`;
+  const filename = `婚纱照-${image.id}.png`;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 ease-out-strong space-y-3 duration-500 motion-reduce:animate-none">

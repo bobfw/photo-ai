@@ -67,7 +67,7 @@ judging UI from source alone.
 General code lives in shared modules; anything non-general lives next to where it is used.
 
 - `src/services/` — app infrastructure: database, schema, object storage.
-- `src/agents/` — OpenRouter prompts and image generation; keep it Workers-compatible
+- `src/agents/` — Ark (Volcengine) prompts and image generation; keep it Workers-compatible
   (no `sharp`, no static Node `fs` imports).
 - `src/components/ui/` and `src/hooks/` — vendored shadcn/base-ui code; do not edit unless
   a change is actually needed.
