@@ -46,12 +46,12 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
         <DrawerTrigger
           render={
             <button
-              className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition duration-150 active:scale-[0.99]"
+              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition duration-150 active:scale-[0.99]"
               type="button"
             />
           }
         >
-          <span className="border-border/70 text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-full border">
+          <span className="border-border text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-full border">
             <Images className="size-5" strokeWidth={1.5} />
           </span>
           <span className="min-w-0 flex-1">
@@ -136,10 +136,7 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
       {selectedImages.length > 0 ? (
         <div className="grid grid-cols-4 gap-2">
           {selectedImages.map((image) => (
-            <div
-              className="border-border/70 overflow-hidden rounded-xl border shadow-sm"
-              key={image.key}
-            >
+            <div className="border-border overflow-hidden rounded-xl border" key={image.key}>
               <img alt="已选参考图" className="aspect-3/4 w-full object-cover" src={image.url} />
             </div>
           ))}

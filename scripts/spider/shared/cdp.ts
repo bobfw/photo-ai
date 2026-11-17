@@ -3,6 +3,10 @@
 const BROWSER_URL = "http://127.0.0.1:9222";
 const TIMEOUT_MS = 30_000;
 
+interface BrowserVersion {
+  webSocketDebuggerUrl: string;
+}
+
 interface CdpReply {
   id?: number;
   error?: { message?: string };
@@ -29,7 +33,7 @@ export async function evaluateOnPage<T>(pageUrl: string, expression: string): Pr
   }
   if (!response.ok) throw new Error(`连接浏览器失败：${response.status}`);
 
-  const browser = (await response.json()) as { webSocketDebuggerUrl: string };
+  const browser = (await response.json()) as BrowserVersion;
   const ws = new WebSocket(browser.webSocketDebuggerUrl);
 
   try {

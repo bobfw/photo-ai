@@ -55,7 +55,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
       />
 
       {value ? (
-        <div className="border-border/70 relative overflow-hidden rounded-2xl border">
+        <div className="border-border relative overflow-hidden rounded-2xl border">
           <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
           <div className="absolute inset-x-2 bottom-2 flex gap-2">
             <button
@@ -79,7 +79,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
         </div>
       ) : (
         <button
-          className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98]"
+          className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98]"
           onClick={() => inputReference.current?.click()}
           type="button"
         >
