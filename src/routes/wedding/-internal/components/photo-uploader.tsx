@@ -1,4 +1,4 @@
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 const MAX_EDGE = 2048;
@@ -29,14 +29,18 @@ interface PhotoUploaderProperties {
 export function PhotoUploader({ label, value, onChange }: PhotoUploaderProperties) {
   const inputReference = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setError("");
+    setIsProcessing(true);
     try {
       onChange(await fileToDataUrl(file));
     } catch (error) {
       setError(error instanceof Error ? error.message : "读取照片失败");
+    } finally {
+      setIsProcessing(false);
     }
   }
 
@@ -59,15 +63,17 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
           <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
           <div className="absolute inset-x-2 bottom-2 flex gap-2">
             <button
-              className="bg-background/90 text-foreground active:bg-background ease-out-strong h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur transition duration-150 active:scale-95"
+              className="bg-background/90 text-foreground active:bg-background ease-out-strong h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur transition duration-150 active:scale-95 disabled:opacity-60"
+              disabled={isProcessing}
               onClick={() => inputReference.current?.click()}
               type="button"
             >
-              更换
+              {isProcessing ? "处理中…" : "更换"}
             </button>
             <button
               aria-label={`移除${label}`}
-              className="bg-background/90 text-foreground active:bg-background ease-out-strong flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur transition duration-150 active:scale-95"
+              className="bg-background/90 text-foreground active:bg-background ease-out-strong flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur transition duration-150 active:scale-95 disabled:opacity-60"
+              disabled={isProcessing}
               onClick={() => {
                 onChange("");
               }}
@@ -79,18 +85,30 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
         </div>
       ) : (
         <button
-          className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98]"
+          aria-busy={isProcessing}
+          className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98] disabled:pointer-events-none"
+          disabled={isProcessing}
           onClick={() => inputReference.current?.click()}
           type="button"
         >
-          <ImagePlus className="text-muted-foreground size-6" strokeWidth={1.5} />
-          <span className="text-sm font-medium">点击上传</span>
-          <span className="text-muted-foreground text-xs">正脸 · 清晰</span>
+          {isProcessing ? (
+            <Loader2 className="text-muted-foreground size-6 animate-spin" strokeWidth={1.5} />
+          ) : (
+            <ImagePlus className="text-muted-foreground size-6" strokeWidth={1.5} />
+          )}
+          <span className="text-sm font-medium">{isProcessing ? "正在处理" : "点击上传"}</span>
+          <span className="text-muted-foreground text-xs">
+            {isProcessing ? "请稍候" : "正脸 · 清晰"}
+          </span>
         </button>
       )}
 
       <p className="text-muted-foreground text-center text-xs">{label}</p>
-      {error ? <p className="text-destructive text-center text-xs">{error}</p> : undefined}
+      {error ? (
+        <p className="text-destructive text-center text-xs" role="alert">
+          {error}
+        </p>
+      ) : undefined}
     </div>
   );
 }

@@ -28,7 +28,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
         <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
-        <meta content="#ffffff" name="theme-color" />
+        <meta content="#fcfaf6" name="theme-color" />
         <meta content="light" name="color-scheme" />
         <title>出片 · AI</title>
         <HeadContent />
@@ -59,7 +59,7 @@ function NotFoundPage() {
         <h1 className="font-heading text-2xl font-semibold tracking-tight">页面不存在</h1>
         <p className="text-muted-foreground text-sm">这个地址没有对应的页面，请检查后重试。</p>
       </header>
-      <Button className="w-full max-w-xs" render={<Link to="/" />} size="cta">
+      <Button className="w-full max-w-xs" nativeButton={false} render={<Link to="/" />} size="cta">
         回首页
       </Button>
     </main>
@@ -82,7 +82,12 @@ function ErrorPage({ error, reset }: ErrorComponentProps) {
         <Button className="h-11 flex-1" onClick={reset}>
           重试
         </Button>
-        <Button className="h-11 flex-1" render={<Link to="/" />} variant="outline">
+        <Button
+          className="h-11 flex-1"
+          nativeButton={false}
+          render={<Link to="/" />}
+          variant="outline"
+        >
           回首页
         </Button>
       </div>

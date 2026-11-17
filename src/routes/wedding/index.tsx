@@ -104,10 +104,10 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
 
   return (
     <main className="bg-background min-h-dvh">
-      <div className="mx-auto w-full max-w-xl px-6 pt-6 pb-16">
+      <div className="mx-auto w-full max-w-xl px-6 pt-6 pb-[max(4rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-heading text-2xl">出片 · 婚纱照</h1>
-          <span className="text-muted-foreground shrink-0 text-xs tracking-[0.2em]">
+          <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
             剩余 {state.remaining} 张
           </span>
         </div>
@@ -118,8 +118,8 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
             <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
           </div>
-          <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-xs leading-5 font-medium">
-            <ShieldCheck className="size-3.5 shrink-0" />
+          <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-[13px] leading-5 font-medium">
+            <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
             隐私承诺：不会保存你上传的照片，仅用于本次生成。
           </p>
         </section>
@@ -153,7 +153,9 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             {generateButtonLabel(generateMutation.isPending, state.remaining, selected.length)}
           </Button>
           {generateMutation.error ? (
-            <p className="text-destructive text-center text-sm">{generateMutation.error.message}</p>
+            <p className="text-destructive text-center text-sm" role="alert">
+              {generateMutation.error.message}
+            </p>
           ) : undefined}
         </section>
 
@@ -161,7 +163,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           <section aria-busy="true" className="mt-10 space-y-4">
             <div className="flex items-end justify-between">
               <h2 className="font-heading text-2xl">正在生成</h2>
-              <span className="text-muted-foreground text-xs tracking-[0.2em]">
+              <span className="text-muted-foreground text-xs tracking-[0.15em] tabular-nums">
                 {selected.length} 张
               </span>
             </div>
@@ -180,7 +182,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           <section className="mt-10 space-y-4">
             <div className="flex items-end justify-between">
               <h2 className="font-heading text-2xl">生成结果</h2>
-              <span className="text-muted-foreground text-xs tracking-wide">
+              <span className="text-muted-foreground text-xs tracking-[0.15em] tabular-nums">
                 {state.images.length} 张
               </span>
             </div>
@@ -199,10 +201,12 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
 function StepHeading({ index, title, hint }: { index: string; title: string; hint: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="font-heading text-primary/25 pt-0.5 text-2xl leading-none">{index}</span>
+      <span className="font-heading text-primary/30 pt-0.5 text-2xl leading-none tabular-nums">
+        {index}
+      </span>
       <div className="min-w-0 space-y-1.5">
-        <h2 className="font-heading text-xl leading-tight">{title}</h2>
-        <p className="text-muted-foreground text-xs leading-5">{hint}</p>
+        <h2 className="font-heading text-xl leading-tight text-balance">{title}</h2>
+        <p className="text-muted-foreground text-[13px] leading-5">{hint}</p>
       </div>
     </div>
   );

@@ -8,20 +8,30 @@ export const Route = createFileRoute("/")({
 
 function WelcomePage() {
   return (
-    <main className="bg-background relative flex min-h-dvh flex-col overflow-hidden">
-      <div
-        aria-hidden
-        className="bg-accent/60 pointer-events-none absolute -top-44 left-1/2 h-112 w-2xl -translate-x-1/2 rounded-full blur-3xl"
-      />
-
-      <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
-        <header className="space-y-3">
-          <h1 className="font-heading text-5xl tracking-[0.3em]">出片</h1>
-          <p className="text-muted-foreground text-sm">AI 摄影工作室</p>
+    <main className="bg-background flex min-h-dvh flex-col">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6">
+        <header className="flex flex-1 flex-col items-center justify-center py-16 text-center">
+          <h1 className="font-heading indent-[0.3em] text-6xl leading-none tracking-[0.3em]">
+            出片
+          </h1>
+          <p className="text-muted-foreground mt-5 text-xs tracking-[0.35em]">AI 摄影工作室</p>
+          <p className="font-heading text-foreground/90 mt-14 text-xl leading-relaxed text-balance">
+            把你们的故事，
+            <br />
+            拍成婚纱照。
+          </p>
         </header>
-        <Button className="w-full max-w-xs" render={<Link to="/wedding/voucher" />} size="cta">
-          婚纱照
-        </Button>
+
+        <div className="pb-[max(2rem,env(safe-area-inset-bottom))]">
+          <Button
+            className="w-full"
+            nativeButton={false}
+            render={<Link to="/wedding/voucher" />}
+            size="cta"
+          >
+            开始制作婚纱照
+          </Button>
+        </div>
       </div>
     </main>
   );

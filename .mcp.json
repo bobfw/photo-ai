@@ -2,9 +2,10 @@
   "mcpServers": {
     "chrome-devtools": {
       "type": "stdio",
-      "command": "npx",
+      "command": "pnpm",
       "args": [
-        "--yes",
+        "--silent",
+        "dlx",
         "chrome-devtools-mcp@latest",
         "--browserUrl",
         "http://127.0.0.1:9222",

@@ -27,11 +27,7 @@ function VoucherPage() {
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-12">
-          <p className="text-muted-foreground flex items-center gap-3 text-xs tracking-[0.35em]">
-            <span aria-hidden className="bg-primary/30 h-px w-7" />
-            AI 婚纱摄影
-          </p>
-          <h1 className="font-heading mt-6 text-4xl leading-tight sm:text-5xl">
+          <h1 className="font-heading text-[clamp(2rem,9vw,3rem)] leading-[1.2] text-balance">
             把你们的故事，
             <br />
             拍成婚纱照。
@@ -72,13 +68,17 @@ function VoucherPage() {
               spellCheck={false}
               value={code}
             />
-            {error ? <p className="text-destructive text-sm">{error}</p> : undefined}
+            {error ? (
+              <p className="text-destructive text-sm" role="alert">
+                {error}
+              </p>
+            ) : undefined}
             <Button className="w-full" disabled={code.trim().length === 0} size="cta" type="submit">
               开始生成
             </Button>
           </form>
 
-          <p className="text-muted-foreground mt-5 text-center text-xs tracking-wide">
+          <p className="text-muted-foreground mt-5 text-center text-[13px] leading-5">
             凭证可在网店购买 · 一个凭证可生成多张照片
           </p>
         </section>

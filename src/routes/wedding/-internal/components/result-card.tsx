@@ -35,16 +35,21 @@ export function ResultCard({ code, image }: ResultCardProperties) {
   const filename = `婚纱照-${image.id}.${extension}`;
 
   return (
-    <div className="space-y-3">
+    <div className="animate-in fade-in slide-in-from-bottom-2 ease-out-strong space-y-3 duration-500 motion-reduce:animate-none">
       <button
         aria-label="查看大图"
-        className="ease-out-strong block w-full cursor-zoom-in overflow-hidden rounded-2xl transition duration-150 active:scale-[0.99]"
+        className="ease-out-strong bg-muted block w-full cursor-zoom-in overflow-hidden rounded-2xl transition duration-150 active:scale-[0.99]"
         onClick={() => {
           setIsPreviewOpen(true);
         }}
         type="button"
       >
-        <img alt="生成的婚纱照" className="w-full object-cover" src={image.url} />
+        <img
+          alt="生成的婚纱照"
+          className="aspect-3/4 w-full object-cover"
+          decoding="async"
+          src={image.url}
+        />
       </button>
       <Lightbox
         carousel={{ finite: true }}
@@ -56,7 +61,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
         slides={[{ src: image.url }]}
       />
       <div className="space-y-3">
-        <p className="text-muted-foreground text-xs tracking-wide">
+        <p className="text-muted-foreground text-[13px] leading-5">
           还可修改 {image.remainingEdits} 次
         </p>
         <textarea
@@ -71,6 +76,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
         <div className="flex justify-between gap-2">
           <Button
             className="h-11 rounded-full px-4"
+            nativeButton={false}
             render={<a download={filename} href={image.url} />}
             variant="outline"
           >
@@ -88,7 +94,9 @@ export function ResultCard({ code, image }: ResultCardProperties) {
           </Button>
         </div>
         {editMutation.error ? (
-          <p className="text-destructive text-xs">{editMutation.error.message}</p>
+          <p className="text-destructive text-[13px] leading-5" role="alert">
+            {editMutation.error.message}
+          </p>
         ) : undefined}
       </div>
     </div>

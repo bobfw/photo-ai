@@ -1,9 +1,8 @@
-import { ChevronRight, Images } from "lucide-react";
+import { Check, ChevronRight, Images } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "#lib/utils";
 import { Button } from "#ui/button";
-import { Checkbox } from "#ui/checkbox";
 import {
   Drawer,
   DrawerClose,
@@ -58,7 +57,7 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
             <span className="block text-sm font-medium">
               {selected.length > 0 ? `已选 ${selected.length} 张参考图` : "浏览参考图"}
             </span>
-            <span className="text-muted-foreground mt-0.5 block truncate text-xs">
+            <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-5">
               {selected.length > 0 ? "点此继续挑选或调整" : `共 ${groups.length} 组风格 · 点此挑选`}
             </span>
           </span>
@@ -80,12 +79,15 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {groups.map((item) => (
-                  <SelectItem key={item.title} value={item.title}>
-                    {item.title}
-                    {item.images.some((image) => selected.includes(image.key)) ? " ✓" : ""}
-                  </SelectItem>
-                ))}
+                {groups.map((item) => {
+                  const count = item.images.filter((image) => selected.includes(image.key)).length;
+                  return (
+                    <SelectItem key={item.title} value={item.title}>
+                      {item.title}
+                      {count > 0 ? ` · 已选 ${count}` : ""}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
@@ -111,14 +113,17 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
                         src={image.url}
                       />
                     </button>
-                    <Checkbox
-                      aria-label={`选择 ${group.title} 第 ${imageIndex + 1} 张参考图`}
-                      checked={isActive}
-                      className="bg-background/90 absolute top-1.5 right-1.5 size-5"
-                      onCheckedChange={() => {
-                        onToggle(image.key);
-                      }}
-                    />
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full border shadow-sm transition-colors duration-150",
+                        isActive
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background/90 text-transparent",
+                      )}
+                    >
+                      <Check className="size-3" strokeWidth={3} />
+                    </span>
                   </div>
                 );
               })}
