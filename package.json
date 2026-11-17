@@ -1,5 +1,5 @@
 {
-  "name": "likeness",
+  "name": "photo-ai",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,8 +16,8 @@
     "preview": "vp preview",
     "deploy": "pnpm run build && wrangler deploy",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply likeness --local",
-    "db:migrate:remote": "wrangler d1 migrations apply likeness --remote",
+    "db:migrate": "wrangler d1 migrations apply photo-ai --local",
+    "db:migrate:remote": "wrangler d1 migrations apply photo-ai --remote",
     "references:seed": "node scripts/seed-references.ts",
     "voucher:create": "node scripts/create-voucher.ts",
     "voucher:link": "node scripts/create-voucher-link.ts",

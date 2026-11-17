@@ -1,0 +1,94 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { z } from "zod";
+
+import { Button } from "#ui/button";
+import { Input } from "#ui/input";
+
+export const Route = createFileRoute("/wedding/voucher")({
+  validateSearch: z.object({ error: z.literal("invalid").optional() }),
+  component: VoucherPage,
+});
+
+function VoucherPage() {
+  const navigate = useNavigate();
+  const { error: redirectError } = Route.useSearch();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(redirectError === "invalid" ? "凭证无效，请检查后重试" : "");
+
+  return (
+    <main className="bg-background relative flex min-h-dvh flex-col overflow-hidden">
+      <div
+        aria-hidden
+        className="bg-accent/50 pointer-events-none absolute -top-56 left-1/2 h-104 w-xl -translate-x-1/2 rounded-full blur-3xl"
+      />
+
+      <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
+        <header className="border-border/70 flex items-center justify-between border-b pb-5">
+          <span className="font-heading text-xl tracking-[0.3em]">出片</span>
+          <span className="text-muted-foreground text-[10px] tracking-[0.25em] uppercase">
+            AI Wedding Studio
+          </span>
+        </header>
+
+        <section className="flex flex-1 flex-col justify-center py-12">
+          <p className="text-muted-foreground flex items-center gap-3 text-[11px] tracking-[0.35em]">
+            <span aria-hidden className="bg-primary/30 h-px w-7" />
+            AI 婚纱摄影
+          </p>
+          <h1 className="font-heading mt-6 text-4xl leading-tight sm:text-5xl">
+            把你们的故事，
+            <br />
+            拍成婚纱照。
+          </h1>
+          <p className="text-muted-foreground mt-4 text-sm leading-6">
+            上传两张正脸照片，挑一组喜欢的风格，几分钟生成属于你们的婚纱照。
+          </p>
+
+          <form
+            className="mt-8 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const value = code.trim();
+              if (!value) return;
+              if (!z.uuidv7().safeParse(value).success) {
+                setError("凭证码格式不正确，请检查后重试");
+                return;
+              }
+              void navigate({ to: "/wedding", search: { code: value } });
+            }}
+          >
+            <Input
+              aria-label="凭证码"
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
+              autoFocus
+              enterKeyHint="go"
+              className="bg-card h-12 rounded-xl px-4 font-mono text-[13px] tracking-wider"
+              onChange={(event) => {
+                setCode(event.target.value);
+              }}
+              placeholder="粘贴凭证码"
+              spellCheck={false}
+              value={code}
+            />
+            {error ? <p className="text-destructive text-sm">{error}</p> : undefined}
+            <Button
+              className="h-12 w-full rounded-full text-base tracking-[0.15em]"
+              disabled={code.trim().length === 0}
+              size="lg"
+              type="submit"
+            >
+              开始生成
+            </Button>
+          </form>
+
+          <p className="text-muted-foreground mt-5 text-center text-[11px] tracking-wide">
+            凭证可在网店购买 · 一个凭证可生成多张照片
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}

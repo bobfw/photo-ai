@@ -26,7 +26,7 @@ export function createVouchers({ total, count, type, remote }: CreateVouchersOpt
       `INSERT INTO vouchers (code, type, total_images, generated_count, created_at) VALUES ('${code}', '${type}', ${total}, 0, ${createdAt});`,
   );
 
-  const directory = mkdtempSync(path.join(tmpdir(), "likeness-vouchers-"));
+  const directory = mkdtempSync(path.join(tmpdir(), "photo-ai-vouchers-"));
   const file = path.join(directory, "vouchers.sql");
   writeFileSync(file, statements.join("\n"));
 
@@ -37,7 +37,7 @@ export function createVouchers({ total, count, type, remote }: CreateVouchersOpt
       "wrangler",
       "d1",
       "execute",
-      "likeness",
+      "photo-ai",
       remote ? "--remote" : "--local",
       `--file=${file}`,
       "--yes",

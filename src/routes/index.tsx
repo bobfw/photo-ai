@@ -8,15 +8,25 @@ export const Route = createFileRoute("/")({
 
 function WelcomePage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-10 px-4 py-16 text-center">
-      <header className="space-y-3">
-        <h1 className="font-heading text-5xl font-semibold tracking-tight">出片</h1>
-        <p className="text-muted-foreground text-sm">AI 婚纱照 · 上传照片，生成属于你们的婚纱照</p>
-      </header>
-      <Button className="h-11 w-full px-6" render={<Link to="/voucher" />} size="lg">
-        进入婚纱照
-      </Button>
-      <p className="text-muted-foreground text-xs">凭证可在网店购买，一个凭证可生成多张婚纱照。</p>
+    <main className="bg-background relative flex min-h-dvh flex-col overflow-hidden">
+      <div
+        aria-hidden
+        className="bg-accent/60 pointer-events-none absolute -top-44 left-1/2 h-112 w-2xl -translate-x-1/2 rounded-full blur-3xl"
+      />
+
+      <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
+        <header className="space-y-3">
+          <h1 className="font-heading text-5xl tracking-[0.3em]">出片</h1>
+          <p className="text-muted-foreground text-sm">AI 摄影工作室</p>
+        </header>
+        <Button
+          className="h-12 w-full max-w-xs rounded-full text-base tracking-[0.15em]"
+          render={<Link to="/wedding/voucher" />}
+          size="lg"
+        >
+          婚纱照
+        </Button>
+      </div>
     </main>
   );
 }

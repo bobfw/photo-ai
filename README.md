@@ -1,4 +1,4 @@
-# Likeness（出片）
+# photo-ai（出片）
 
 AI 婚纱照生成，跑在 Cloudflare Workers 上（D1 + R2）。
 
@@ -24,8 +24,8 @@ pnpm db:migrate:remote           # 应用到线上 D1
 ## 部署
 
 ```bash
-wrangler d1 create likeness      # 把返回的 database_id 填进 wrangler.jsonc
-wrangler r2 bucket create likeness-images
+wrangler d1 create photo-ai      # 把返回的 database_id 填进 wrangler.jsonc
+wrangler r2 bucket create photo-ai-images
 wrangler secret put OPENROUTER_API_KEY
 pnpm db:migrate:remote
 pnpm deploy

@@ -11,7 +11,7 @@ import { parseArgs } from "node:util";
 const run = promisify(execFile);
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MANIFEST = path.join(ROOT, "src/routes/wedding/-internal/services/groups.json");
-const BUCKET = "likeness-images";
+const BUCKET = "photo-ai-images";
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

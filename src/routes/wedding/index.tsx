@@ -21,14 +21,14 @@ export const Route = createFileRoute("/wedding/")({
   loaderDeps: ({ search }) => ({ code: search.code }),
   loader: async ({ deps: { code } }) => {
     if (!code) {
-      throw redirect({ to: "/voucher" });
+      throw redirect({ to: "/wedding/voucher" });
     }
     if (!z.uuidv7().safeParse(code).success) {
-      throw redirect({ to: "/voucher", search: { error: "invalid" } });
+      throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
     }
     const state = await getVoucherState({ data: { code } });
     if (!state) {
-      throw redirect({ to: "/voucher", search: { error: "invalid" } });
+      throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
     }
     return { code, state };
   },
