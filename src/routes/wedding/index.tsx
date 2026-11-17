@@ -82,6 +82,13 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
       );
       if (failed) throw failed.reason;
     },
+    onSuccess: () => {
+      toast.add({
+        title: "生成完成",
+        description: `共 ${selected.length} 张，在页面下方查看`,
+        type: "success",
+      });
+    },
     onSettled: () => {
       void router.invalidate();
     },
