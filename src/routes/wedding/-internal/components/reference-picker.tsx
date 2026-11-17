@@ -125,9 +125,7 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
             </div>
           </div>
           <DrawerFooter className="border-border/70 border-t">
-            <DrawerClose
-              render={<Button className="h-12 w-full rounded-full" size="lg" type="button" />}
-            >
+            <DrawerClose render={<Button className="w-full" size="cta" type="button" />}>
               完成{selected.length > 0 ? `（已选 ${selected.length} 张）` : ""}
             </DrawerClose>
           </DrawerFooter>

@@ -46,7 +46,7 @@ function VoucherPage() {
               event.preventDefault();
               const value = code.trim();
               if (!value) return;
-              if (!z.uuidv7().safeParse(value).success) {
+              if (!z.uuid().safeParse(value).success) {
                 setError("凭证码格式不正确，请检查后重试");
                 return;
               }
@@ -64,7 +64,7 @@ function VoucherPage() {
               onChange={(event) => {
                 const value = event.target.value.trim();
                 setCode(value);
-                if (z.uuidv7().safeParse(value).success) {
+                if (z.uuid().safeParse(value).success) {
                   void navigate({ to: "/wedding", search: { code: value } });
                 }
               }}
@@ -73,12 +73,7 @@ function VoucherPage() {
               value={code}
             />
             {error ? <p className="text-destructive text-sm">{error}</p> : undefined}
-            <Button
-              className="h-12 w-full rounded-full text-base tracking-[0.15em]"
-              disabled={code.trim().length === 0}
-              size="lg"
-              type="submit"
-            >
+            <Button className="w-full" disabled={code.trim().length === 0} size="cta" type="submit">
               开始生成
             </Button>
           </form>

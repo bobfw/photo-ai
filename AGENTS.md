@@ -48,6 +48,8 @@ judging UI from source alone.
 
 - The browser must be started with `--remote-debugging-port=9222`; the MCP tools connect
   at session start, so restart Claude Code if the browser was down then.
+- Only use the browser MCP—or launch a browser yourself for verification—when the user
+  explicitly asks. Never start browser automation on your own.
 
 ## Cloudflare
 

@@ -8,17 +8,44 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { createFileRoute } from '@tanstack/react-router'
+
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MediaSplatRouteImport } from './routes/media/$'
 import { Route as WeddingIndexRouteImport } from './routes/wedding/index'
 import { Route as WeddingVoucherRouteImport } from './routes/wedding/voucher'
 
+const AdminRouteLazyRouteImport = createFileRoute('/admin')()
+const AdminNeed_authRouteLazyRouteImport =
+  createFileRoute('/admin/_need_auth')()
+const AdminLoginRouteLazyRouteImport = createFileRoute('/admin/login')()
+const AdminNeed_authIndexLazyRouteImport =
+  createFileRoute('/admin/_need_auth/')()
+
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRouteLazyRoute = AdminRouteLazyRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/admin/route.lazy').then((d) => d.Route))
+const AdminNeed_authRouteLazyRoute = AdminNeed_authRouteLazyRouteImport.update({
+  id: '/_need_auth',
+  getParentRoute: () => AdminRouteLazyRoute,
+} as any).lazy(() =>
+  import('./routes/admin/_need_auth/route.lazy').then((d) => d.Route),
+)
+const AdminLoginRouteLazyRoute = AdminLoginRouteLazyRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRouteLazyRoute,
+} as any).lazy(() =>
+  import('./routes/admin/login/route.lazy').then((d) => d.Route),
+)
 const MediaSplatRoute = MediaSplatRouteImport.update({
   id: '/media/$',
   path: '/media/$',
@@ -34,36 +61,75 @@ const WeddingVoucherRoute = WeddingVoucherRouteImport.update({
   path: '/wedding/voucher',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminNeed_authIndexLazyRoute = AdminNeed_authIndexLazyRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminNeed_authRouteLazyRoute,
+} as any).lazy(() =>
+  import('./routes/admin/_need_auth/index.lazy').then((d) => d.Route),
+)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminNeed_authRouteLazyRouteWithChildren
   '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
+  '/admin/login': typeof AdminLoginRouteLazyRoute
   '/wedding/': typeof WeddingIndexRoute
+  '/admin/': typeof AdminNeed_authIndexLazyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminNeed_authIndexLazyRoute
   '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
+  '/admin/login': typeof AdminLoginRouteLazyRoute
   '/wedding': typeof WeddingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteLazyRouteWithChildren
   '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
+  '/admin/_need_auth': typeof AdminNeed_authRouteLazyRouteWithChildren
+  '/admin/login': typeof AdminLoginRouteLazyRoute
   '/wedding/': typeof WeddingIndexRoute
+  '/admin/_need_auth/': typeof AdminNeed_authIndexLazyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/media/$' | '/wedding/voucher' | '/wedding/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/media/$'
+    | '/wedding/voucher'
+    | '/admin/login'
+    | '/wedding/'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/media/$' | '/wedding/voucher' | '/wedding'
-  id: '__root__' | '/' | '/media/$' | '/wedding/voucher' | '/wedding/'
+  to:
+    | '/'
+    | '/admin'
+    | '/media/$'
+    | '/wedding/voucher'
+    | '/admin/login'
+    | '/wedding'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/media/$'
+    | '/wedding/voucher'
+    | '/admin/_need_auth'
+    | '/admin/login'
+    | '/wedding/'
+    | '/admin/_need_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteLazyRoute: typeof AdminRouteLazyRouteWithChildren
   MediaSplatRoute: typeof MediaSplatRoute
   WeddingVoucherRoute: typeof WeddingVoucherRoute
   WeddingIndexRoute: typeof WeddingIndexRoute
@@ -77,6 +143,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_need_auth': {
+      id: '/admin/_need_auth'
+      path: ''
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminNeed_authRouteLazyRouteImport
+      parentRoute: typeof AdminRouteLazyRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteLazyRouteImport
+      parentRoute: typeof AdminRouteLazyRoute
     }
     '/media/$': {
       id: '/media/$'
@@ -99,11 +186,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WeddingVoucherRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/_need_auth/': {
+      id: '/admin/_need_auth/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminNeed_authIndexLazyRouteImport
+      parentRoute: typeof AdminNeed_authRouteLazyRoute
+    }
   }
 }
 
+interface AdminNeed_authRouteLazyRouteChildren {
+  AdminNeed_authIndexLazyRoute: typeof AdminNeed_authIndexLazyRoute
+}
+
+const AdminNeed_authRouteLazyRouteChildren: AdminNeed_authRouteLazyRouteChildren =
+  {
+    AdminNeed_authIndexLazyRoute: AdminNeed_authIndexLazyRoute,
+  }
+
+const AdminNeed_authRouteLazyRouteWithChildren =
+  AdminNeed_authRouteLazyRoute._addFileChildren(
+    AdminNeed_authRouteLazyRouteChildren,
+  )
+
+interface AdminRouteLazyRouteChildren {
+  AdminNeed_authRouteLazyRoute: typeof AdminNeed_authRouteLazyRouteWithChildren
+  AdminLoginRouteLazyRoute: typeof AdminLoginRouteLazyRoute
+}
+
+const AdminRouteLazyRouteChildren: AdminRouteLazyRouteChildren = {
+  AdminNeed_authRouteLazyRoute: AdminNeed_authRouteLazyRouteWithChildren,
+  AdminLoginRouteLazyRoute: AdminLoginRouteLazyRoute,
+}
+
+const AdminRouteLazyRouteWithChildren = AdminRouteLazyRoute._addFileChildren(
+  AdminRouteLazyRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteLazyRoute: AdminRouteLazyRouteWithChildren,
   MediaSplatRoute: MediaSplatRoute,
   WeddingVoucherRoute: WeddingVoucherRoute,
   WeddingIndexRoute: WeddingIndexRoute,

@@ -19,11 +19,7 @@ function WelcomePage() {
           <h1 className="font-heading text-5xl tracking-[0.3em]">出片</h1>
           <p className="text-muted-foreground text-sm">AI 摄影工作室</p>
         </header>
-        <Button
-          className="h-12 w-full max-w-xs rounded-full text-base tracking-[0.15em]"
-          render={<Link to="/wedding/voucher" />}
-          size="lg"
-        >
+        <Button className="w-full max-w-xs" render={<Link to="/wedding/voucher" />} size="cta">
           婚纱照
         </Button>
       </div>

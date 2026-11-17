@@ -25,7 +25,7 @@ export const Route = createFileRoute("/wedding/")({
     if (!code) {
       throw redirect({ to: "/wedding/voucher" });
     }
-    if (!z.uuidv7().safeParse(code).success) {
+    if (!z.uuid().safeParse(code).success) {
       throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
     }
     const state = await getVoucherState({ data: { code } });
@@ -141,12 +141,12 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <section className="border-border/60 mt-8 space-y-4 border-t pt-6">
           <StepHeading index="03" title="生成婚纱照" hint="预计 1–3 分钟，生成后还可以继续修改。" />
           <Button
-            className="h-12 w-full rounded-full text-base tracking-[0.15em] shadow-sm"
+            className="w-full shadow-sm"
             disabled={!canGenerate}
             onClick={() => {
               generateMutation.mutate();
             }}
-            size="lg"
+            size="cta"
             type="button"
           >
             {generateMutation.isPending ? <Loader2 className="animate-spin" /> : undefined}

@@ -1,7 +1,7 @@
 // 创建婚纱照凭证码（写入本地 D1；加 --remote 写线上 D1）：
 // pnpm voucher:create -- --total 5 --count 10 [--remote]
 import { spawnSync } from "node:child_process";
-import { randomUUIDv7 } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -19,7 +19,7 @@ interface CreateVouchersOptions {
 }
 
 export function createVouchers({ total, count, type, remote }: CreateVouchersOptions): string[] {
-  const codes = Array.from({ length: count }, () => randomUUIDv7());
+  const codes = Array.from({ length: count }, () => randomUUID());
   const createdAt = Date.now();
   const statements = codes.map(
     (code) =>

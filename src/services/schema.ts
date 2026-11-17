@@ -6,6 +6,7 @@ export const vouchers = sqliteTable("vouchers", {
   type: text("type").notNull(),
   totalImages: integer("total_images").notNull(),
   generatedCount: integer("generated_count").notNull().default(0),
+  platform: text("platform"),
   createdAt: integer("created_at").notNull(),
 });
 
