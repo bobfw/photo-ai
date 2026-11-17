@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "#ui/button";
+import { Skeleton } from "#ui/skeleton";
 import { toast } from "#ui/toast";
 
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
@@ -148,12 +149,32 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             size="lg"
             type="button"
           >
+            {generateMutation.isPending ? <Loader2 className="animate-spin" /> : undefined}
             {generateButtonLabel(generateMutation.isPending, state.remaining, selected.length)}
           </Button>
           {generateMutation.error ? (
             <p className="text-destructive text-center text-sm">{generateMutation.error.message}</p>
           ) : undefined}
         </section>
+
+        {generateMutation.isPending ? (
+          <section aria-busy="true" className="mt-10 space-y-4">
+            <div className="flex items-end justify-between">
+              <h2 className="font-heading text-2xl">正在生成</h2>
+              <span className="text-muted-foreground text-xs tracking-[0.2em]">
+                {selected.length} 张
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: selected.length }, (_, index) => (
+                <Skeleton
+                  className="aspect-3/4 rounded-2xl motion-reduce:animate-none"
+                  key={index}
+                />
+              ))}
+            </div>
+          </section>
+        ) : undefined}
 
         {state.images.length > 0 ? (
           <section className="mt-10 space-y-4">
