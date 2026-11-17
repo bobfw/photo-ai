@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "imports": {
+    "#agents/wedding": "./src/agents/wedding/index.ts",
     "#agents/*": "./src/agents/*.ts",
     "#hooks/*": "./src/hooks/*.ts",
     "#lib/*": "./src/lib/*.ts",

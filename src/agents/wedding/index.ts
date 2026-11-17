@@ -1,5 +1,5 @@
-import { generatePhotoBytes } from "./generate-photo.ts";
-import { buildWeddingEditInstruction, buildWeddingInstruction } from "./wedding-prompts.ts";
+import { generatePhotoBytes } from "../generate-photo.ts";
+import { buildWeddingEditInstruction, buildWeddingInstruction } from "./prompts.ts";
 
 const WEDDING_SIZE = "1536x2048";
 
