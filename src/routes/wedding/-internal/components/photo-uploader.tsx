@@ -1,6 +1,5 @@
+import { ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
-
-import { Button } from "#ui/button";
 
 const MAX_EDGE = 2048;
 
@@ -43,7 +42,6 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-medium">{label}</span>
       <input
         accept="image/jpeg,image/png,image/webp"
         className="hidden"
@@ -57,45 +55,42 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
       />
 
       {value ? (
-        <div className="space-y-2">
-          <img
-            alt={`${label}预览`}
-            className="aspect-3/4 w-full max-w-28 rounded-lg object-cover"
-            src={value}
-          />
-          <div className="flex gap-2">
-            <Button
+        <div className="border-border/70 relative overflow-hidden rounded-2xl border">
+          <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
+          <div className="absolute inset-x-2 bottom-2 flex gap-2">
+            <button
+              className="bg-background/90 text-foreground active:bg-background h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur transition-colors"
               onClick={() => inputReference.current?.click()}
-              size="sm"
               type="button"
-              variant="outline"
             >
               更换
-            </Button>
-            <Button
+            </button>
+            <button
+              aria-label={`移除${label}`}
+              className="bg-background/90 text-foreground active:bg-background flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur transition-colors"
               onClick={() => {
                 onChange("");
               }}
-              size="sm"
               type="button"
-              variant="ghost"
             >
-              移除
-            </Button>
+              <X className="size-4" />
+            </button>
           </div>
         </div>
       ) : (
         <button
-          className="border-border bg-muted/30 hover:bg-muted/60 flex h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 text-center transition-colors"
+          className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition-colors"
           onClick={() => inputReference.current?.click()}
           type="button"
         >
-          <span className="text-3xl">＋</span>
-          <span className="text-sm">点击上传照片</span>
+          <ImagePlus className="text-muted-foreground size-6" strokeWidth={1.5} />
+          <span className="text-sm font-medium">点击上传</span>
+          <span className="text-muted-foreground text-xs">正脸 · 清晰</span>
         </button>
       )}
 
-      {error ? <p className="text-destructive text-xs">{error}</p> : undefined}
+      <p className="text-muted-foreground text-center text-xs">{label}</p>
+      {error ? <p className="text-destructive text-center text-xs">{error}</p> : undefined}
     </div>
   );
 }

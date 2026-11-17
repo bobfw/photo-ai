@@ -5,7 +5,6 @@ import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 import { Button } from "#ui/button";
-import { Card, CardContent } from "#ui/card";
 
 import "yet-another-react-lightbox/styles.css";
 
@@ -36,10 +35,10 @@ export function ResultCard({ code, image }: ResultCardProperties) {
   const filename = `婚纱照-${image.id}.${extension}`;
 
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <div className="space-y-3">
       <button
         aria-label="查看大图"
-        className="block w-full cursor-zoom-in"
+        className="block w-full cursor-zoom-in overflow-hidden rounded-2xl"
         onClick={() => {
           setIsPreviewOpen(true);
         }}
@@ -56,10 +55,12 @@ export function ResultCard({ code, image }: ResultCardProperties) {
         plugins={[Zoom]}
         slides={[{ src: image.url }]}
       />
-      <CardContent className="space-y-3 p-4">
-        <p className="text-muted-foreground text-xs">还可修改 {image.remainingEdits} 次</p>
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-xs tracking-wide">
+          还可修改 {image.remainingEdits} 次
+        </p>
         <textarea
-          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-20 w-full resize-y rounded-lg border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 bg-background min-h-20 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canEdit || editMutation.isPending}
           onChange={(event) => {
             setInstruction(event.target.value);
@@ -68,15 +69,19 @@ export function ResultCard({ code, image }: ResultCardProperties) {
           value={instruction}
         />
         <div className="flex justify-between gap-2">
-          <Button render={<a download={filename} href={image.url} />} size="sm" variant="outline">
+          <Button
+            className="h-11 rounded-full px-4"
+            render={<a download={filename} href={image.url} />}
+            variant="outline"
+          >
             下载
           </Button>
           <Button
+            className="h-11 rounded-full px-4"
             disabled={!canEdit || instruction.trim().length === 0 || editMutation.isPending}
             onClick={() => {
               editMutation.mutate(instruction.trim());
             }}
-            size="sm"
             type="button"
           >
             {editMutation.isPending ? "修改中…" : "修改这张"}
@@ -85,7 +90,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
         {editMutation.error ? (
           <p className="text-destructive text-xs">{editMutation.error.message}</p>
         ) : undefined}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
