@@ -46,7 +46,7 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
         <DrawerTrigger
           render={
             <button
-              className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-colors"
+              className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition duration-150 active:scale-[0.99]"
               type="button"
             />
           }
@@ -96,7 +96,7 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
                     <button
                       aria-pressed={isActive}
                       className={cn(
-                        "block w-full overflow-hidden rounded-xl border-2 shadow-sm transition-colors",
+                        "block w-full overflow-hidden rounded-xl border-2 shadow-sm transition duration-150 ease-out-strong active:scale-95",
                         isActive ? "border-primary" : "border-transparent",
                       )}
                       onClick={() => {

@@ -38,7 +38,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
     <div className="space-y-3">
       <button
         aria-label="查看大图"
-        className="block w-full cursor-zoom-in overflow-hidden rounded-2xl"
+        className="ease-out-strong block w-full cursor-zoom-in overflow-hidden rounded-2xl transition duration-150 active:scale-[0.99]"
         onClick={() => {
           setIsPreviewOpen(true);
         }}
@@ -60,7 +60,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
           还可修改 {image.remainingEdits} 次
         </p>
         <textarea
-          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 bg-background min-h-20 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 bg-background min-h-20 w-full resize-y rounded-xl border px-3 py-2 text-base outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canEdit || editMutation.isPending}
           onChange={(event) => {
             setInstruction(event.target.value);

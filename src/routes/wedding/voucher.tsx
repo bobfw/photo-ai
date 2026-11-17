@@ -60,7 +60,7 @@ function VoucherPage() {
               autoCorrect="off"
               autoFocus
               enterKeyHint="go"
-              className="bg-card h-12 rounded-full px-5 font-mono text-[13px] tracking-wider"
+              className="bg-card h-12 rounded-full px-5 font-mono text-base tracking-wider"
               onChange={(event) => {
                 const value = event.target.value.trim();
                 setCode(value);

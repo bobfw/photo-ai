@@ -20,7 +20,12 @@ export default defineConfig({
   fmt: {
     sortImports: true,
     sortTailwindcss: true,
-    ignorePatterns: ["**/routeTree.gen.ts", "**/drizzle/**", "**/worker-configuration.d.ts"],
+    ignorePatterns: [
+      "**/routeTree.gen.ts",
+      "**/drizzle/**",
+      "**/worker-configuration.d.ts",
+      "**/.claude/**",
+    ],
   },
   lint: {
     jsPlugins: [
@@ -29,7 +34,12 @@ export default defineConfig({
     ],
     rules: { "vite-plus/prefer-vite-plus-imports": "error", ...deferOxlintConfig.rules },
     options: { typeAware: true, typeCheck: true },
-    ignorePatterns: ["**/routeTree.gen.ts", "**/drizzle/**", "**/worker-configuration.d.ts"],
+    ignorePatterns: [
+      "**/routeTree.gen.ts",
+      "**/drizzle/**",
+      "**/worker-configuration.d.ts",
+      "**/.claude/**",
+    ],
     overrides: [
       {
         // shadcn conventions require lib/utils.ts

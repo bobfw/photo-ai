@@ -59,7 +59,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
           <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
           <div className="absolute inset-x-2 bottom-2 flex gap-2">
             <button
-              className="bg-background/90 text-foreground active:bg-background h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur transition-colors"
+              className="bg-background/90 text-foreground active:bg-background ease-out-strong h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur transition duration-150 active:scale-95"
               onClick={() => inputReference.current?.click()}
               type="button"
             >
@@ -67,7 +67,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
             </button>
             <button
               aria-label={`移除${label}`}
-              className="bg-background/90 text-foreground active:bg-background flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur transition-colors"
+              className="bg-background/90 text-foreground active:bg-background ease-out-strong flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur transition duration-150 active:scale-95"
               onClick={() => {
                 onChange("");
               }}
@@ -79,7 +79,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
         </div>
       ) : (
         <button
-          className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition-colors"
+          className="border-border/70 bg-card/60 hover:bg-card active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98]"
           onClick={() => inputReference.current?.click()}
           type="button"
         >
