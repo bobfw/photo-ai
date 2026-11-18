@@ -143,7 +143,7 @@ function VoucherPage() {
           </Dialog>
 
           <p className="text-muted-foreground mt-5 text-center text-[13px] leading-5">
-            凭证可在网店购买 · 一个凭证可生成多张照片
+            凭证可在网店购买 · 可生成张数以商品说明为准
           </p>
         </section>
       </div>
