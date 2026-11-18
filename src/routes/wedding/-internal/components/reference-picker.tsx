@@ -1,8 +1,9 @@
-import { Check, ChevronRight, Images } from "lucide-react";
+import { Check, ChevronRight, Images, X } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "#lib/utils";
 import { Button } from "#ui/button";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "#ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -26,6 +27,7 @@ interface ReferencePickerProperties {
 
 export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePickerProperties) {
   const [activeGroup, setActiveGroup] = useState(groups[0]?.title ?? "");
+  const [preview, setPreview] = useState<{ url: string; label: string }>();
   const groupIndex = Math.max(
     0,
     groups.findIndex((item) => item.title === activeGroup),
@@ -138,13 +140,52 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
       </Drawer>
       {selectedImages.length > 0 ? (
         <div className="grid grid-cols-4 gap-2">
-          {selectedImages.map((image) => (
-            <div className="border-border overflow-hidden rounded-xl border" key={image.key}>
+          {selectedImages.map((image, index) => (
+            <button
+              aria-label={`放大查看已选参考图 ${index + 1}`}
+              className="ease-out-strong border-border block w-full cursor-zoom-in overflow-hidden rounded-xl border transition duration-150 active:scale-95"
+              key={image.key}
+              onClick={() => {
+                setPreview({ url: image.url, label: `已选参考图 ${index + 1}` });
+              }}
+              type="button"
+            >
               <img alt="已选参考图" className="aspect-3/4 w-full object-cover" src={image.url} />
-            </div>
+            </button>
           ))}
         </div>
       ) : undefined}
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setPreview(undefined);
+        }}
+        open={preview !== undefined}
+      >
+        <DialogContent className="inset-0 top-0 left-0 h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-black p-0">
+          <DialogTitle className="sr-only">放大查看参考图</DialogTitle>
+          {preview ? (
+            <div className="flex h-full items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <img
+                alt={preview.label}
+                className="max-h-full max-w-full object-contain"
+                src={preview.url}
+              />
+            </div>
+          ) : undefined}
+          <DialogClose
+            render={
+              <Button
+                aria-label="关闭"
+                className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 size-11 rounded-full"
+                size="icon-lg"
+                variant="secondary"
+              />
+            }
+          >
+            <X aria-hidden />
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

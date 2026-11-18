@@ -186,6 +186,9 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
                 {state.images.length} 张
               </span>
             </div>
+            <p className="text-muted-foreground text-[13px] leading-5">
+              图片仅保留 24 小时，请及时保存。
+            </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {state.images.map((image) => (
                 <ResultCard code={code} image={image} key={image.id} />

@@ -57,6 +57,7 @@ export function ResultCard({ code, image }: ResultCardProperties) {
         }}
         open={isPreviewOpen}
         plugins={[Zoom]}
+        render={{ buttonNext: () => <></>, buttonPrev: () => <></> }} // 只有一张图，隐去左右箭头
         slides={[{ src: image.url }]}
       />
       <div className="space-y-3">
