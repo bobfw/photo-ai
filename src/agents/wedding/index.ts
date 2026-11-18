@@ -1,7 +1,8 @@
 import { generatePhoto } from "../generate-photo.ts";
 import { buildWeddingEditInstruction, buildWeddingInstruction } from "./prompts.ts";
 
-const WEDDING_SIZE = "1536x2048";
+// const WEDDING_SIZE = "1344x1792";
+const WEDDING_SIZE = "1776x2368";
 
 /**
  * 生成一张婚纱照：用新娘、新郎两张面部参考，加上一张场景与造型参考图。

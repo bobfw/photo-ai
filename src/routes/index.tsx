@@ -15,10 +15,8 @@ function WelcomePage() {
             出片
           </h1>
           <p className="text-muted-foreground mt-5 text-xs tracking-[0.35em]">AI 摄影工作室</p>
-          <p className="font-heading text-foreground/90 mt-14 text-xl leading-relaxed text-balance">
-            把你们的故事，
-            <br />
-            拍成婚纱照。
+          <p className="font-heading text-muted-foreground mt-6 text-sm tracking-[0.15em]">
+            让每一个想象，都能出片
           </p>
         </header>
 
