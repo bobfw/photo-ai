@@ -1,5 +1,5 @@
 import { generatePhoto } from "../generate-photo.ts";
-import { buildWeddingEditInstruction, buildWeddingInstruction } from "./prompts.ts";
+import { type BodySize, buildWeddingEditInstruction, buildWeddingInstruction } from "./prompts.ts";
 
 // const WEDDING_SIZE = "1344x1792";
 const WEDDING_SIZE = "1776x2368";
@@ -11,6 +11,7 @@ const WEDDING_SIZE = "1776x2368";
 export async function generateWeddingImage(input: {
   faces: string[];
   reference: string;
+  bodySizes: BodySize[];
 }): Promise<string> {
   const { text, references } = buildWeddingInstruction(input);
   return generate(text, references);

@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "#ui/button";
+import { Input } from "#ui/input";
 import { Skeleton } from "#ui/skeleton";
 import { toast } from "#ui/toast";
 
@@ -48,6 +49,8 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
+  const [bodyA, setBodyA] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
+  const [bodyB, setBodyB] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
   const maxSelectable = Math.min(state.remaining, REFERENCE_GROUPS.length);
 
   function toggleReference(key: string) {
@@ -75,7 +78,14 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
       }
       const results = await Promise.allSettled(
         selected.map((reference) =>
-          generateWedding({ data: { code, reference, faces: [photoA, photoB] } }),
+          generateWedding({
+            data: {
+              code,
+              reference,
+              faces: [photoA, photoB],
+              bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
+            },
+          }),
         ),
       );
       const failed = results.find(
@@ -117,6 +127,13 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           <div className="mx-auto grid max-w-80 grid-cols-2 gap-4">
             <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
             <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
+          </div>
+          <div className="mx-auto max-w-80 space-y-2">
+            <p className="text-muted-foreground text-xs">
+              身高体重（选填，只为让身形更像你们自己）
+            </p>
+            <BodySizeFields label="女生" onChange={setBodyA} value={bodyA} />
+            <BodySizeFields label="男生" onChange={setBodyB} value={bodyB} />
           </div>
           <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
@@ -220,6 +237,67 @@ function generateButtonLabel(isPending: boolean, remaining: number, count: numbe
   if (remaining === 0) return "照片额度已用完";
   if (count === 0) return "生成婚纱照";
   return `生成 ${count} 张婚纱照`;
+}
+
+interface BodyDraft {
+  height: string;
+  weight: string;
+}
+
+const EMPTY_BODY_DRAFT: BodyDraft = { height: "", weight: "" };
+
+function BodySizeFields({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: BodyDraft;
+  onChange: (value: BodyDraft) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[2.5rem_1fr_1fr] items-center gap-2">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <Input
+        aria-label={`${label}身高（厘米）`}
+        className="h-11"
+        inputMode="numeric"
+        max={250}
+        min={100}
+        onChange={(event) => {
+          onChange({ ...value, height: event.target.value });
+        }}
+        placeholder="身高 cm"
+        step={1}
+        type="number"
+        value={value.height}
+      />
+      <Input
+        aria-label={`${label}体重（公斤）`}
+        className="h-11"
+        inputMode="decimal"
+        max={200}
+        min={30}
+        onChange={(event) => {
+          onChange({ ...value, weight: event.target.value });
+        }}
+        placeholder="体重 kg"
+        step={0.1}
+        type="number"
+        value={value.weight}
+      />
+    </div>
+  );
+}
+
+function toBodySize({ height, weight }: BodyDraft) {
+  return { height: parseBodyValue(height), weight: parseBodyValue(weight) };
+}
+
+function parseBodyValue(value: string) {
+  if (value.trim() === "") return;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function CenteredMessage({ children }: { children: ReactNode }) {

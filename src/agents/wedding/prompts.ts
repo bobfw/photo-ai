@@ -3,6 +3,11 @@ export interface BuiltWeddingInstruction {
   references: string[];
 }
 
+export interface BodySize {
+  height?: number;
+  weight?: number;
+}
+
 const PHOTOGRAPHIC_REALISM = [
   "【摄影真实感】",
   "画面必须是真实相机拍摄的婚纱摄影作品，而不是 AI 渲染、3D 建模或数字插画。",
@@ -43,7 +48,22 @@ function peopleSection() {
     "即使同时提供了图 1 和图 2，人物数量也只由图 3 决定，不得为了让两个人都出场而增加人物。",
     "图 3 中的背景路人、宾客或远景人物保持原样，不做替换。",
     "两个人的身份不得互换、混合或平均；不得把两张脸融合成一张陌生面孔。",
-    "身体姿势、体型轮廓和服装以图 3 为准，不得根据面部参考图改变。",
+    "身体姿势和服装以图 3 为准；体型轮廓以图 3 为基础，提供了身高体重时按对应数据做自然调整。",
+  ].join("\n");
+}
+
+function bodySection(label: string, bodySize: BodySize) {
+  const facts = [
+    bodySize.height === undefined ? undefined : `身高 ${bodySize.height} cm`,
+    bodySize.weight === undefined ? undefined : `体重 ${bodySize.weight} kg`,
+  ].filter((fact) => fact !== undefined);
+  if (facts.length === 0) return "";
+
+  return [
+    `【${label}身形】`,
+    `如果画面中出现${label}，${label}的体型以这份数据为准：${facts.join("、")}；不要照搬图 3 中人物原有的身材。`,
+    `在保持图 3 的站立位置、姿势、构图、光线、婚纱或礼服款式和面部身份不变的前提下，按真实人类的身体比例调整${label}的胖瘦、肩宽、腰身、四肢粗细和头身比例，让服装自然贴合调整后的身体。`,
+    "调整必须符合真实人体结构：不得拉长变形、过度消瘦或夸张，不得改变脸型、发型和妆容。",
   ].join("\n");
 }
 
@@ -71,10 +91,12 @@ function poseSection() {
 export function buildWeddingInstruction(input: {
   faces: string[];
   reference: string;
+  bodySizes: BodySize[];
 }): BuiltWeddingInstruction {
-  const { faces, reference } = input;
+  const { faces, reference, bodySizes } = input;
 
   if (faces.length !== 2) throw new Error("双人模式需要两张人物照片");
+  if (bodySizes.length !== 2) throw new Error("双人模式需要两个人的身高体重");
 
   return {
     references: [...faces, reference],
@@ -83,12 +105,16 @@ export function buildWeddingInstruction(input: {
       "【任务】以图 3 为底图进行人物面部身份替换：保持图 3 的构图、姿势、服装、发型、背景和光线不变，只把人物的脸替换为对应面部参考图中的人，并做必要的脸部衔接，使结果看起来就是一张原生拍摄的照片。",
       referenceSection(),
       peopleSection(),
+      bodySection("新娘", bodySizes[0]),
+      bodySection("新郎", bodySizes[1]),
       identitySection("新娘", "图 1"),
       identitySection("新郎", "图 2"),
       blendSection(),
       poseSection(),
       PHOTOGRAPHIC_REALISM,
-    ].join("\n\n"),
+    ]
+      .filter((section) => section !== "")
+      .join("\n\n"),
   };
 }
 

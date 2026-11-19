@@ -23,10 +23,16 @@ const faceSchema = z
 
 const voucherInput = z.object({ code: codeSchema });
 
+const bodySizeSchema = z.object({
+  height: z.number().min(100, "身高请填写 100–250 cm").max(250, "身高请填写 100–250 cm").optional(),
+  weight: z.number().min(30, "体重请填写 30–200 kg").max(200, "体重请填写 30–200 kg").optional(),
+});
+
 const generateInput = z.object({
   code: codeSchema,
   reference: z.string().min(1, "请选择参考图").max(200, "参考图地址不正确"),
   faces: z.array(faceSchema).length(2, "双人婚纱照需要上传两张照片"),
+  bodySizes: z.array(bodySizeSchema).length(2, "双人婚纱照需要两个人的身高体重"),
 });
 
 const editInput = z.object({
@@ -119,6 +125,7 @@ export const generateWedding = createServerFn({ method: "POST" })
       const imageUrl = await generateWeddingImage({
         faces: data.faces,
         reference,
+        bodySizes: data.bodySizes,
       });
 
       const createdAt = Date.now();
