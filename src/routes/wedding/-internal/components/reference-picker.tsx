@@ -166,10 +166,11 @@ export function ReferencePicker({
               ref={customInputReference}
               type="file"
             />
-            <button
-              className="text-primary mx-auto flex min-h-11 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline disabled:opacity-60"
+            <Button
+              className="w-full text-sm"
               disabled={isCustomProcessing}
               onClick={() => customInputReference.current?.click()}
+              size="cta"
               type="button"
             >
               {isCustomProcessing ? (
@@ -178,7 +179,7 @@ export function ReferencePicker({
                 <Upload className="size-4" />
               )}
               {isCustomProcessing ? "正在处理…" : "没有喜欢的？使用自定义造型"}
-            </button>
+            </Button>
             {customError ? (
               <p className="text-destructive text-center text-xs" role="alert">
                 {customError}
