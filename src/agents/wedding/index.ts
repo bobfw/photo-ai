@@ -1,5 +1,10 @@
 import { generatePhoto } from "../generate-photo.ts";
-import { type BodySize, buildWeddingEditInstruction, buildWeddingInstruction } from "./prompts.ts";
+import {
+  type BodySize,
+  type RetouchLevel,
+  buildWeddingEditInstruction,
+  buildWeddingInstruction,
+} from "./prompts.ts";
 
 // const WEDDING_SIZE = "1344x1792";
 const WEDDING_SIZE = "1776x2368";
@@ -12,6 +17,7 @@ export async function generateWeddingImage(input: {
   faces: string[];
   reference: string;
   bodySizes: BodySize[];
+  retouch: RetouchLevel;
 }): Promise<string> {
   const { text, references } = buildWeddingInstruction(input);
   return generate(text, references);
@@ -24,6 +30,7 @@ export async function generateWeddingImage(input: {
 export async function editWeddingImage(input: {
   photo: string;
   instruction: string;
+  retouch: RetouchLevel;
 }): Promise<string> {
   const { text, references } = buildWeddingEditInstruction(input);
   return generate(text, references);

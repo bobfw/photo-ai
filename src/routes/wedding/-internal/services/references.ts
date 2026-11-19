@@ -11,6 +11,10 @@ export interface ReferenceGroup {
   images: ReferenceImage[];
 }
 
+export type ReferenceChoice =
+  | { kind: "curated"; key: string; url: string }
+  | { kind: "custom"; dataUrl: string };
+
 export const REFERENCE_GROUPS: ReferenceGroup[] = groups.map((group) => ({
   source: group.source,
   title: group.title,

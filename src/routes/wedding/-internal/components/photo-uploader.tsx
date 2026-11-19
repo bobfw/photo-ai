@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 
 const MAX_EDGE = 2048;
 
-async function fileToDataUrl(file: File): Promise<string> {
+export async function fileToDataUrl(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("请选择图片文件");
 
   const bitmap = await createImageBitmap(file);

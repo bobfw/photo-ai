@@ -1,14 +1,14 @@
-import { Check, ChevronRight, Images, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, Loader2, Maximize2, Plus, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
-import { cn } from "#lib/utils";
 import { Button } from "#ui/button";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "#ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -16,59 +16,100 @@ import {
 } from "#ui/drawer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#ui/select";
 
-import type { ReferenceGroup } from "../services/references.ts";
+import "yet-another-react-lightbox/styles.css";
+
+import type { ReferenceChoice, ReferenceGroup } from "../services/references.ts";
+import { RETOUCH_LEVELS, retouchLabel, type RetouchLevel } from "../services/retouch.ts";
+import { fileToDataUrl } from "./photo-uploader.tsx";
 
 interface ReferencePickerProperties {
   groups: ReferenceGroup[];
-  selected: string[];
-  max: number;
-  onToggle: (key: string) => void;
+  triggerLabel: string;
+  actionLabel: string;
+  actionDisabled: boolean;
+  globalRetouch: RetouchLevel;
+  onGenerate: (reference: ReferenceChoice, retouch: RetouchLevel) => void;
 }
 
-export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePickerProperties) {
+export function ReferencePicker({
+  groups,
+  triggerLabel,
+  actionLabel,
+  actionDisabled,
+  globalRetouch,
+  onGenerate,
+}: ReferencePickerProperties) {
   const [activeGroup, setActiveGroup] = useState(groups[0]?.title ?? "");
-  const [preview, setPreview] = useState<{ url: string; label: string }>();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [isCustomProcessing, setIsCustomProcessing] = useState(false);
+  const [customError, setCustomError] = useState("");
+  const customInputReference = useRef<HTMLInputElement>(null);
+  const [confirming, setConfirming] = useState<{
+    reference: ReferenceChoice;
+    url: string;
+    label: string;
+    retouch?: RetouchLevel;
+  }>();
   const groupIndex = Math.max(
     0,
     groups.findIndex((item) => item.title === activeGroup),
   );
   const group = groups[groupIndex];
-  const imagesByKey = new Map(
-    groups.flatMap((item) => item.images.map((image) => [image.key, image])),
-  );
-  const selectedImages = selected.flatMap((key) => {
-    const image = imagesByKey.get(key);
-    return image ? [image] : [];
-  });
+
+  async function handleCustomFile(file: File | undefined) {
+    if (!file) return;
+    setCustomError("");
+    setIsCustomProcessing(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setConfirming({
+        reference: { kind: "custom", dataUrl },
+        url: dataUrl,
+        label: "自定义造型",
+      });
+    } catch (error) {
+      setCustomError(error instanceof Error ? error.message : "读取图片失败");
+    } finally {
+      setIsCustomProcessing(false);
+    }
+  }
+
+  const retouchItems = [
+    { value: "global", label: `跟随全局（${retouchLabel(globalRetouch)}）` },
+    ...RETOUCH_LEVELS.map((level) => ({ value: level.value, label: level.label })),
+  ];
 
   return (
-    <div className="space-y-3">
-      <Drawer showSwipeHandle swipeDirection="down">
+    <div>
+      <Drawer
+        onOpenChange={setIsDrawerOpen}
+        open={isDrawerOpen}
+        showSwipeHandle
+        swipeDirection="down"
+      >
         <DrawerTrigger
           render={
             <button
-              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition duration-150 active:scale-[0.99]"
+              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition duration-150 active:scale-[0.99]"
               type="button"
             />
           }
         >
           <span className="border-border text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-full border">
-            <Images className="size-5" strokeWidth={1.5} />
+            <Plus className="size-5" strokeWidth={1.5} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">
-              {selected.length > 0 ? `已选 ${selected.length} 张参考图` : "浏览参考图"}
-            </span>
+            <span className="block text-sm font-medium">{triggerLabel}</span>
             <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-5">
-              {selected.length > 0 ? "点此继续挑选或调整" : `共 ${groups.length} 组风格 · 点此挑选`}
+              选一张造型，确认后生成
             </span>
           </span>
           <ChevronRight className="text-muted-foreground size-4 shrink-0" />
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle className="font-heading">选择参考图</DrawerTitle>
-            <DrawerDescription>最多选择 {max} 张；一张参考图生成一张婚纱照。</DrawerDescription>
+            <DrawerTitle className="font-heading">挑一张喜欢的造型</DrawerTitle>
           </DrawerHeader>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4">
             <Select
@@ -81,111 +122,173 @@ export function ReferencePicker({ groups, selected, max, onToggle }: ReferencePi
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {groups.map((item) => {
-                  const count = item.images.filter((image) => selected.includes(image.key)).length;
-                  return (
-                    <SelectItem key={item.title} value={item.title}>
-                      {item.title}
-                      {count > 0 ? ` · 已选 ${count}` : ""}
-                    </SelectItem>
-                  );
-                })}
+                {groups.map((item) => (
+                  <SelectItem key={item.title} value={item.title}>
+                    {item.title}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-              {group.images.map((image, imageIndex) => {
-                const isActive = selected.includes(image.key);
-                return (
-                  <div className="relative" key={image.key}>
-                    <button
-                      aria-pressed={isActive}
-                      className={cn(
-                        "block w-full overflow-hidden rounded-xl border-2 shadow-sm transition duration-150 ease-out-strong active:scale-95",
-                        isActive ? "border-primary" : "border-transparent",
-                      )}
-                      onClick={() => {
-                        onToggle(image.key);
-                      }}
-                      type="button"
-                    >
-                      <img
-                        alt={`${group.title} 参考图 ${imageIndex + 1}`}
-                        className="aspect-3/4 w-full object-cover"
-                        loading="lazy"
-                        src={image.url}
-                      />
-                    </button>
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full border shadow-sm transition-colors duration-150",
-                        isActive
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background/90 text-transparent",
-                      )}
-                    >
-                      <Check className="size-3" strokeWidth={3} />
-                    </span>
-                  </div>
-                );
-              })}
+              {group.images.map((image, imageIndex) => (
+                <button
+                  aria-label={`选择${group.title}参考图 ${imageIndex + 1}`}
+                  className="ease-out-strong border-border block w-full overflow-hidden rounded-xl border shadow-sm transition duration-150 active:scale-95"
+                  key={image.key}
+                  onClick={() => {
+                    setConfirming({
+                      reference: { kind: "curated", key: image.key, url: image.url },
+                      url: image.url,
+                      label: `${group.title} 参考图 ${imageIndex + 1}`,
+                    });
+                  }}
+                  type="button"
+                >
+                  <img
+                    alt=""
+                    className="aspect-3/4 w-full object-cover"
+                    loading="lazy"
+                    src={image.url}
+                  />
+                </button>
+              ))}
             </div>
           </div>
           <DrawerFooter className="border-border/70 border-t">
-            <DrawerClose render={<Button className="w-full" size="cta" type="button" />}>
-              完成{selected.length > 0 ? `（已选 ${selected.length} 张）` : ""}
+            <input
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                void handleCustomFile(file);
+              }}
+              ref={customInputReference}
+              type="file"
+            />
+            <button
+              className="text-primary mx-auto flex min-h-11 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline disabled:opacity-60"
+              disabled={isCustomProcessing}
+              onClick={() => customInputReference.current?.click()}
+              type="button"
+            >
+              {isCustomProcessing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {isCustomProcessing ? "正在处理…" : "没有喜欢的？使用自定义造型"}
+            </button>
+            {customError ? (
+              <p className="text-destructive text-center text-xs" role="alert">
+                {customError}
+              </p>
+            ) : undefined}
+            <DrawerClose
+              render={<Button className="w-full" size="cta" type="button" variant="outline" />}
+            >
+              取消
             </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-      {selectedImages.length > 0 ? (
-        <div className="grid grid-cols-4 gap-2">
-          {selectedImages.map((image, index) => (
+      <Dialog
+        onOpenChange={(open) => {
+          if (open) return;
+          setConfirming(undefined);
+          setIsZoomOpen(false);
+        }}
+        open={confirming !== undefined}
+      >
+        <DialogContent>
+          <DialogTitle>确认这张造型？</DialogTitle>
+          {confirming ? (
             <button
-              aria-label={`放大查看已选参考图 ${index + 1}`}
-              className="ease-out-strong border-border block w-full cursor-zoom-in overflow-hidden rounded-xl border transition duration-150 active:scale-95"
-              key={image.key}
+              aria-label="放大查看参考图"
+              className="relative mx-auto block w-fit max-w-full overflow-hidden rounded-xl"
               onClick={() => {
-                setPreview({ url: image.url, label: `已选参考图 ${index + 1}` });
+                setIsZoomOpen(true);
               }}
               type="button"
             >
-              <img alt="已选参考图" className="aspect-3/4 w-full object-cover" src={image.url} />
-            </button>
-          ))}
-        </div>
-      ) : undefined}
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) setPreview(undefined);
-        }}
-        open={preview !== undefined}
-      >
-        <DialogContent className="inset-0 top-0 left-0 h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-black p-0">
-          <DialogTitle className="sr-only">放大查看参考图</DialogTitle>
-          {preview ? (
-            <div className="flex h-full items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
               <img
-                alt={preview.label}
-                className="max-h-full max-w-full object-contain"
-                src={preview.url}
+                alt={confirming.label}
+                className="block max-h-[40dvh] max-w-full object-contain"
+                src={confirming.url}
               />
-            </div>
+              <span className="pointer-events-none absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+                <Maximize2 aria-hidden className="size-3.5" />
+                看大图
+              </span>
+            </button>
           ) : undefined}
-          <DialogClose
-            render={
-              <Button
-                aria-label="关闭"
-                className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 size-11 rounded-full"
-                size="icon-lg"
-                variant="secondary"
-              />
-            }
-          >
-            <X aria-hidden />
-          </DialogClose>
+          <div className="space-y-1.5">
+            <p className="text-muted-foreground text-xs">修图力度</p>
+            <Select
+              items={retouchItems}
+              onValueChange={(value) => {
+                if (value === null) return;
+                const selected = RETOUCH_LEVELS.find((level) => level.value === value)?.value;
+                setConfirming((current) => (current ? { ...current, retouch: selected } : current));
+              }}
+              value={confirming?.retouch ?? "global"}
+            >
+              <SelectTrigger className="h-11 w-full" size="default">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {retouchItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogDescription>
+            {confirming?.reference.kind === "custom"
+              ? "将消耗 1 张额度，预计 1–3 分钟；自定义造型仅用于本次生成，不会保存。"
+              : "将消耗 1 张额度，预计 1–3 分钟；生成后还可以继续修改。"}
+          </DialogDescription>
+          <div className="flex gap-2">
+            <Button
+              className="h-11 flex-1"
+              onClick={() => {
+                setConfirming(undefined);
+                setIsZoomOpen(false);
+              }}
+              type="button"
+              variant="outline"
+            >
+              再看看
+            </Button>
+            <Button
+              className="h-11 flex-1"
+              disabled={actionDisabled}
+              onClick={() => {
+                if (!confirming) return;
+                onGenerate(confirming.reference, confirming.retouch ?? globalRetouch);
+                setConfirming(undefined);
+                setIsZoomOpen(false);
+                setIsDrawerOpen(false);
+              }}
+              type="button"
+            >
+              {actionLabel}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
+      <Lightbox
+        carousel={{ finite: true }}
+        close={() => {
+          setIsZoomOpen(false);
+        }}
+        open={isZoomOpen}
+        plugins={[Zoom]}
+        render={{ buttonNext: () => <></>, buttonPrev: () => <></> }}
+        slides={confirming ? [{ alt: confirming.label, src: confirming.url }] : []}
+      />
     </div>
   );
 }

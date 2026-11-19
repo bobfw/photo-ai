@@ -4,16 +4,24 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
-import { Button } from "#ui/button";
+import { cn } from "#lib/utils";
 import { Input } from "#ui/input";
-import { Skeleton } from "#ui/skeleton";
 import { toast } from "#ui/toast";
 
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
 import { ReferencePicker } from "./-internal/components/reference-picker.tsx";
 import { ResultCard } from "./-internal/components/result-card.tsx";
-import { REFERENCE_GROUPS } from "./-internal/services/references.ts";
-import { generateWedding, getVoucherState } from "./-internal/services/wedding.ts";
+import { REFERENCE_GROUPS, type ReferenceChoice } from "./-internal/services/references.ts";
+import {
+  DEFAULT_RETOUCH,
+  RETOUCH_LEVELS,
+  type RetouchLevel,
+} from "./-internal/services/retouch.ts";
+import {
+  generateWedding,
+  getVoucherState,
+  regenerateWedding,
+} from "./-internal/services/wedding.ts";
 
 /* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
 
@@ -46,57 +54,35 @@ function WeddingPage() {
 
 function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   const router = useRouter();
-  const [selected, setSelected] = useState<string[]>([]);
+  const [reference, setReference] = useState<ReferenceChoice>();
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
   const [bodyA, setBodyA] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
   const [bodyB, setBodyB] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
-  const maxSelectable = Math.min(state.remaining, REFERENCE_GROUPS.length);
-
-  function toggleReference(key: string) {
-    if (selected.includes(key)) {
-      setSelected((current) => current.filter((item) => item !== key));
-      return;
-    }
-    if (selected.length >= maxSelectable) {
-      toast.add({
-        title: maxSelectable === 0 ? "照片额度已用完" : `最多只能选择 ${maxSelectable} 张参考图`,
-        type: "warning",
-      });
-      return;
-    }
-    setSelected((current) => [...current, key]);
-  }
+  const [retouch, setRetouch] = useState<RetouchLevel>(DEFAULT_RETOUCH);
+  const hasPhotos = photoA !== "" && photoB !== "";
+  const selectedImageUrl = reference?.kind === "custom" ? reference.dataUrl : reference?.url;
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
-      if (photoA === "" || photoB === "") {
+    mutationFn: async (input: { reference: ReferenceChoice; retouch: RetouchLevel }) => {
+      if (!hasPhotos) {
         throw new Error("请上传女生和男生的照片");
       }
-      if (selected.length === 0) {
-        throw new Error("请选择至少一张参考图");
-      }
-      const results = await Promise.allSettled(
-        selected.map((reference) =>
-          generateWedding({
-            data: {
-              code,
-              reference,
-              faces: [photoA, photoB],
-              bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
-            },
-          }),
-        ),
-      );
-      const failed = results.find(
-        (result): result is PromiseRejectedResult => result.status === "rejected",
-      );
-      if (failed) throw failed.reason;
+      await generateWedding({
+        data: {
+          code,
+          reference: toServerReference(input.reference),
+          faces: [photoA, photoB],
+          bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
+          retouch: input.retouch,
+        },
+      });
     },
     onSuccess: () => {
+      setReference(undefined);
       toast.add({
         title: "生成完成",
-        description: `共 ${selected.length} 张，在页面下方查看`,
+        description: "已放进你们的婚纱照",
         type: "success",
       });
     },
@@ -105,12 +91,41 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
     },
   });
 
-  const canGenerate =
-    state.remaining > 0 &&
-    photoA !== "" &&
-    photoB !== "" &&
-    selected.length > 0 &&
-    !generateMutation.isPending;
+  // 造型在发起生成时锁定，生成期间不允许更换。
+  function handleGenerate(referenceChoice: ReferenceChoice, retouchLevel: RetouchLevel) {
+    setReference(referenceChoice);
+    generateMutation.mutate({ reference: referenceChoice, retouch: retouchLevel });
+  }
+
+  const regenerateMutation = useMutation({
+    mutationFn: async (imageId: number) => {
+      if (!hasPhotos) {
+        throw new Error("请先上传人像照片");
+      }
+      await regenerateWedding({
+        data: {
+          code,
+          imageId,
+          faces: [photoA, photoB],
+          bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
+          retouch,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.add({
+        description: "已添加一个新版本",
+        title: "重新生成完成",
+        type: "success",
+      });
+    },
+    onError: (error) => {
+      toast.add({ title: error.message, type: "error" });
+    },
+    onSettled: () => {
+      void router.invalidate();
+    },
+  });
 
   return (
     <main className="bg-background min-h-dvh">
@@ -118,7 +133,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-heading text-2xl">出片 · 婚纱照</h1>
           <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
-            剩余 {state.remaining} 张
+            还可生成 {state.remaining} 张
           </span>
         </div>
 
@@ -135,6 +150,29 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             <BodySizeFields label="女生" onChange={setBodyA} value={bodyA} />
             <BodySizeFields label="男生" onChange={setBodyB} value={bodyB} />
           </div>
+          <div className="mx-auto max-w-80 space-y-2">
+            <p className="text-muted-foreground text-xs">全局修图力度</p>
+            <div className="grid grid-cols-3 gap-2">
+              {RETOUCH_LEVELS.map((level) => (
+                <button
+                  aria-pressed={retouch === level.value}
+                  className={cn(
+                    "ease-out-strong h-11 rounded-xl border text-sm font-medium transition duration-150 active:scale-[0.98]",
+                    retouch === level.value
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground",
+                  )}
+                  key={level.value}
+                  onClick={() => {
+                    setRetouch(level.value);
+                  }}
+                  type="button"
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
             隐私承诺：不会保存你上传的照片，仅用于本次生成。
@@ -144,75 +182,58 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <section className="border-border/60 mt-8 space-y-4 border-t pt-6">
           <StepHeading
             index="02"
-            title="挑选参考风格"
-            hint={`最多可选 ${maxSelectable} 张；一张参考图生成一张婚纱照。`}
+            title="你们的婚纱照"
+            hint="选一张喜欢的造型，确认后生成；新的照片会出现在这里。"
           />
-          <ReferencePicker
-            groups={REFERENCE_GROUPS}
-            max={maxSelectable}
-            onToggle={toggleReference}
-            selected={selected}
-          />
-        </section>
-
-        <section className="border-border/60 mt-8 space-y-4 border-t pt-6">
-          <StepHeading index="03" title="生成婚纱照" hint="预计 1–3 分钟，生成后还可以继续修改。" />
-          <Button
-            className="w-full shadow-sm"
-            disabled={!canGenerate}
-            onClick={() => {
-              generateMutation.mutate();
-            }}
-            size="cta"
-            type="button"
-          >
-            {generateMutation.isPending ? <Loader2 className="animate-spin" /> : undefined}
-            {generateButtonLabel(generateMutation.isPending, state.remaining, selected.length)}
-          </Button>
-          {generateMutation.error ? (
-            <p className="text-destructive text-center text-sm" role="alert">
-              {generateMutation.error.message}
-            </p>
-          ) : undefined}
-        </section>
-
-        {generateMutation.isPending ? (
-          <section aria-busy="true" className="mt-10 space-y-4">
-            <div className="flex items-end justify-between">
-              <h2 className="font-heading text-2xl">正在生成</h2>
-              <span className="text-muted-foreground text-xs tracking-[0.15em] tabular-nums">
-                {selected.length} 张
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {Array.from({ length: selected.length }, (_, index) => (
-                <Skeleton
-                  className="aspect-3/4 rounded-2xl motion-reduce:animate-none"
-                  key={index}
-                />
-              ))}
-            </div>
-          </section>
-        ) : undefined}
-
-        {state.images.length > 0 ? (
-          <section className="mt-10 space-y-4">
-            <div className="flex items-end justify-between">
-              <h2 className="font-heading text-2xl">生成结果</h2>
-              <span className="text-muted-foreground text-xs tracking-[0.15em] tabular-nums">
+          {state.images.length > 0 ? (
+            <div className="flex items-end justify-between gap-4">
+              <p className="text-muted-foreground text-[13px] leading-5">
+                图片仅保留 24 小时，请及时保存。
+              </p>
+              <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
                 {state.images.length} 张
               </span>
             </div>
-            <p className="text-muted-foreground text-[13px] leading-5">
-              图片仅保留 24 小时，请及时保存。
-            </p>
+          ) : undefined}
+          {state.images.length > 0 || generateMutation.isPending ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {state.images.map((image) => (
-                <ResultCard code={code} image={image} key={image.id} />
+                <ResultCard
+                  canRegenerate={hasPhotos && state.remaining > 0 && !regenerateMutation.isPending}
+                  code={code}
+                  globalRetouch={retouch}
+                  image={image}
+                  isRegenerating={
+                    regenerateMutation.isPending && regenerateMutation.variables === image.id
+                  }
+                  key={image.id}
+                  onRegenerate={() => {
+                    regenerateMutation.mutate(image.id);
+                  }}
+                  regenerateHint={regenerateHintLabel(hasPhotos, state.remaining)}
+                />
               ))}
+              {generateMutation.isPending ? (
+                <GeneratingCard imageUrl={selectedImageUrl} />
+              ) : undefined}
             </div>
-          </section>
-        ) : undefined}
+          ) : undefined}
+          <div className={generateMutation.isPending ? "hidden" : undefined}>
+            <ReferencePicker
+              actionDisabled={!hasPhotos || state.remaining === 0}
+              actionLabel={previewActionLabel(state.remaining, hasPhotos)}
+              globalRetouch={retouch}
+              groups={REFERENCE_GROUPS}
+              onGenerate={handleGenerate}
+              triggerLabel={state.images.length === 0 ? "生成第一张婚纱照" : "再生成一张婚纱照"}
+            />
+            {generateMutation.error ? (
+              <p className="text-destructive mt-4 text-center text-sm" role="alert">
+                {generateMutation.error.message}
+              </p>
+            ) : undefined}
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -232,11 +253,51 @@ function StepHeading({ index, title, hint }: { index: string; title: string; hin
   );
 }
 
-function generateButtonLabel(isPending: boolean, remaining: number, count: number) {
-  if (isPending) return `生成中…（${count} 张）`;
+function GeneratingCard({ imageUrl }: { imageUrl: string | undefined }) {
+  return (
+    <div aria-busy="true" className="w-full">
+      <div className="border-border relative aspect-3/4 overflow-hidden rounded-2xl border">
+        {imageUrl ? (
+          <img alt="" className="size-full object-cover" src={imageUrl} />
+        ) : (
+          <div className="bg-secondary size-full" />
+        )}
+        <div
+          className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
+          role="status"
+        >
+          <Loader2
+            aria-hidden
+            className="text-primary size-7 animate-spin motion-reduce:animate-none"
+            strokeWidth={1.5}
+          />
+          <p className="font-heading text-xl">正在生成这一张</p>
+          <p className="text-muted-foreground text-[13px] leading-5">
+            预计 1–3 分钟，请稍等一会儿。
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function previewActionLabel(remaining: number, hasPhotos: boolean) {
   if (remaining === 0) return "照片额度已用完";
-  if (count === 0) return "生成婚纱照";
-  return `生成 ${count} 张婚纱照`;
+  if (!hasPhotos) return "请先上传人像照片";
+  return "生成这张婚纱照";
+}
+
+function regenerateHintLabel(hasPhotos: boolean, remaining: number) {
+  if (!hasPhotos) return "请先上传人像照片";
+  if (remaining === 0) return "照片额度已用完";
+  return "将消耗 1 张额度";
+}
+
+function toServerReference(reference: ReferenceChoice) {
+  if (reference.kind === "custom") {
+    return { kind: "custom" as const, dataUrl: reference.dataUrl };
+  }
+  return { kind: "curated" as const, key: reference.key };
 }
 
 interface BodyDraft {

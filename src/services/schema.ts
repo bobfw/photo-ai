@@ -30,3 +30,17 @@ export const generatedImages = sqliteTable(
     index("idx_generated_images_expires").on(table.expiresAt),
   ],
 );
+
+export const generatedImageVersions = sqliteTable(
+  "generated_image_versions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    imageId: integer("image_id")
+      .notNull()
+      .references(() => generatedImages.id),
+    imageUrl: text("image_url").notNull(),
+    instruction: text("instruction"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("idx_generated_image_versions_image").on(table.imageId)],
+);
