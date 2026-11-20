@@ -10,7 +10,7 @@ import {
 const WEDDING_SIZE = "1776x2368";
 
 /**
- * 生成一张婚纱照：用新娘、新郎两张面部参考，加上一张场景与造型参考图。
+ * 生成一张婚纱照：新郎两张面部参考，加上一张场景与造型参考图。
  * 返回图片 URL（24 小时内有效）。
  */
 export async function generateWeddingImage(input: {
