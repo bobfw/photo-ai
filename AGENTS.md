@@ -20,6 +20,11 @@ this single package.
 - local secrets: `.dev.vars` (never commit)
 - vouchers: `pnpm voucher:create -- --total 5 --count 10`
 
+## Prompts
+
+Image prompts in `src/agents/` follow the Seedream rules in
+`src/agents/seedream-prompt-guide.md` — read it before editing any prompt.
+
 ## Scripts
 
 - Instagram posts: `node scripts/spider/instagram.ts <post-url>` prints the image URLs.
