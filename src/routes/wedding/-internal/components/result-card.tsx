@@ -20,14 +20,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#
 
 import "yet-another-react-lightbox/styles.css";
 
-import { RETOUCH_LEVELS, type RetouchLevel } from "../services/retouch.ts";
+import { DEFAULT_RETOUCH, RETOUCH_LEVELS, type RetouchLevel } from "../services/retouch.ts";
 import type { PublicImage, PublicImageVersion } from "../services/wedding.ts";
 import { editGeneratedImage } from "../services/wedding.ts";
 
 interface ResultCardProperties {
   code: string;
   image: PublicImage;
-  globalRetouch: RetouchLevel;
   canRegenerate: boolean;
   isRegenerating: boolean;
   regenerateHint: string;
@@ -37,7 +36,6 @@ interface ResultCardProperties {
 export function ResultCard({
   code,
   image,
-  globalRetouch,
   canRegenerate,
   isRegenerating,
   regenerateHint,
@@ -45,7 +43,7 @@ export function ResultCard({
 }: ResultCardProperties) {
   const router = useRouter();
   const [instruction, setInstruction] = useState("");
-  const [editRetouch, setEditRetouch] = useState<RetouchLevel>(globalRetouch);
+  const [editRetouch, setEditRetouch] = useState<RetouchLevel>(DEFAULT_RETOUCH);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const versions = image.versions;
   const latestVersionId = versions.at(-1)?.id ?? 0;

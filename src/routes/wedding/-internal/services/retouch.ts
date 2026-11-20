@@ -7,7 +7,3 @@ export const RETOUCH_LEVELS = [
 export type RetouchLevel = (typeof RETOUCH_LEVELS)[number]["value"];
 
 export const DEFAULT_RETOUCH: RetouchLevel = "refined";
-
-export function retouchLabel(level: RetouchLevel) {
-  return RETOUCH_LEVELS.find((item) => item.value === level)?.label ?? level;
-}

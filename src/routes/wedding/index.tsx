@@ -4,7 +4,6 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
-import { cn } from "#lib/utils";
 import { Input } from "#ui/input";
 import { toast } from "#ui/toast";
 
@@ -12,11 +11,7 @@ import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
 import { ReferencePicker } from "./-internal/components/reference-picker.tsx";
 import { ResultCard } from "./-internal/components/result-card.tsx";
 import { REFERENCE_GROUPS, type ReferenceChoice } from "./-internal/services/references.ts";
-import {
-  DEFAULT_RETOUCH,
-  RETOUCH_LEVELS,
-  type RetouchLevel,
-} from "./-internal/services/retouch.ts";
+import { DEFAULT_RETOUCH } from "./-internal/services/retouch.ts";
 import {
   generateWedding,
   getVoucherState,
@@ -57,24 +52,23 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   const [reference, setReference] = useState<ReferenceChoice>();
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
-  const [bodyA, setBodyA] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
-  const [bodyB, setBodyB] = useState<BodyDraft>(EMPTY_BODY_DRAFT);
-  const [retouch, setRetouch] = useState<RetouchLevel>(DEFAULT_RETOUCH);
+  const [bodyA, setBodyA] = useStoredBodyDraft("wedding_body_a");
+  const [bodyB, setBodyB] = useStoredBodyDraft("wedding_body_b");
   const hasPhotos = photoA !== "" && photoB !== "";
   const selectedImageUrl = reference?.kind === "custom" ? reference.dataUrl : reference?.url;
 
   const generateMutation = useMutation({
-    mutationFn: async (input: { reference: ReferenceChoice; retouch: RetouchLevel }) => {
+    mutationFn: async (referenceChoice: ReferenceChoice) => {
       if (!hasPhotos) {
         throw new Error("请上传女生和男生的照片");
       }
       await generateWedding({
         data: {
           code,
-          reference: toServerReference(input.reference),
+          reference: toServerReference(referenceChoice),
           faces: [photoA, photoB],
           bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
-          retouch: input.retouch,
+          retouch: DEFAULT_RETOUCH,
         },
       });
     },
@@ -92,9 +86,9 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   });
 
   // 造型在发起生成时锁定，生成期间不允许更换。
-  function handleGenerate(referenceChoice: ReferenceChoice, retouchLevel: RetouchLevel) {
+  function handleGenerate(referenceChoice: ReferenceChoice) {
     setReference(referenceChoice);
-    generateMutation.mutate({ reference: referenceChoice, retouch: retouchLevel });
+    generateMutation.mutate(referenceChoice);
   }
 
   const regenerateMutation = useMutation({
@@ -108,7 +102,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           imageId,
           faces: [photoA, photoB],
           bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
-          retouch,
+          retouch: DEFAULT_RETOUCH,
         },
       });
     },
@@ -150,29 +144,6 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             <BodySizeFields label="女生" onChange={setBodyA} value={bodyA} />
             <BodySizeFields label="男生" onChange={setBodyB} value={bodyB} />
           </div>
-          <div className="mx-auto max-w-80 space-y-2">
-            <p className="text-muted-foreground text-xs">全局修图力度</p>
-            <div className="grid grid-cols-3 gap-2">
-              {RETOUCH_LEVELS.map((level) => (
-                <button
-                  aria-pressed={retouch === level.value}
-                  className={cn(
-                    "ease-out-strong h-11 rounded-xl border text-sm font-medium transition duration-150 active:scale-[0.98]",
-                    retouch === level.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-foreground",
-                  )}
-                  key={level.value}
-                  onClick={() => {
-                    setRetouch(level.value);
-                  }}
-                  type="button"
-                >
-                  {level.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
             隐私承诺：不会保存你上传的照片，仅用于本次生成。
@@ -201,7 +172,6 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
                 <ResultCard
                   canRegenerate={hasPhotos && state.remaining > 0 && !regenerateMutation.isPending}
                   code={code}
-                  globalRetouch={retouch}
                   image={image}
                   isRegenerating={
                     regenerateMutation.isPending && regenerateMutation.variables === image.id
@@ -222,7 +192,6 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
             <ReferencePicker
               actionDisabled={!hasPhotos || state.remaining === 0}
               actionLabel={previewActionLabel(state.remaining, hasPhotos)}
-              globalRetouch={retouch}
               groups={REFERENCE_GROUPS}
               onGenerate={handleGenerate}
               triggerLabel={state.images.length === 0 ? "生成第一张婚纱照" : "再生成一张婚纱照"}
@@ -306,6 +275,35 @@ interface BodyDraft {
 }
 
 const EMPTY_BODY_DRAFT: BodyDraft = { height: "", weight: "" };
+
+// 身高体重存进 sessionStorage，刷新页面不用重填；其他信息不落盘。
+function useStoredBodyDraft(key: string) {
+  const [value, setValue] = useState<BodyDraft>(() => readBodyDraft(key));
+  function update(next: BodyDraft) {
+    setValue(next);
+    writeBodyDraft(key, next);
+  }
+  return [value, update] as const;
+}
+
+function readBodyDraft(key: string): BodyDraft {
+  if (typeof sessionStorage === "undefined") return EMPTY_BODY_DRAFT;
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? "null");
+    if (typeof parsed === "object" && parsed !== null) {
+      const { height, weight } = parsed as Partial<BodyDraft>;
+      if (typeof height === "string" && typeof weight === "string") return { height, weight };
+    }
+  } catch {
+    // 存储内容损坏时按空值处理
+  }
+  return EMPTY_BODY_DRAFT;
+}
+
+function writeBodyDraft(key: string, value: BodyDraft) {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.setItem(key, JSON.stringify(value));
+}
 
 function BodySizeFields({
   label,

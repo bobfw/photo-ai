@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#
 import "yet-another-react-lightbox/styles.css";
 
 import type { ReferenceChoice, ReferenceGroup } from "../services/references.ts";
-import { RETOUCH_LEVELS, retouchLabel, type RetouchLevel } from "../services/retouch.ts";
+import { DEFAULT_RETOUCH, RETOUCH_LEVELS, type RetouchLevel } from "../services/retouch.ts";
 import { fileToDataUrl } from "./photo-uploader.tsx";
 
 interface ReferencePickerProperties {
@@ -27,7 +27,6 @@ interface ReferencePickerProperties {
   triggerLabel: string;
   actionLabel: string;
   actionDisabled: boolean;
-  globalRetouch: RetouchLevel;
   onGenerate: (reference: ReferenceChoice, retouch: RetouchLevel) => void;
 }
 
@@ -36,7 +35,6 @@ export function ReferencePicker({
   triggerLabel,
   actionLabel,
   actionDisabled,
-  globalRetouch,
   onGenerate,
 }: ReferencePickerProperties) {
   const [activeGroup, setActiveGroup] = useState(groups[0]?.title ?? "");
@@ -74,11 +72,6 @@ export function ReferencePicker({
       setIsCustomProcessing(false);
     }
   }
-
-  const retouchItems = [
-    { value: "global", label: `跟随全局（${retouchLabel(globalRetouch)}）` },
-    ...RETOUCH_LEVELS.map((level) => ({ value: level.value, label: level.label })),
-  ];
 
   return (
     <div>
@@ -226,19 +219,19 @@ export function ReferencePicker({
           <div className="space-y-1.5">
             <p className="text-muted-foreground text-xs">修图力度</p>
             <Select
-              items={retouchItems}
+              items={RETOUCH_LEVELS}
               onValueChange={(value) => {
                 if (value === null) return;
                 const selected = RETOUCH_LEVELS.find((level) => level.value === value)?.value;
                 setConfirming((current) => (current ? { ...current, retouch: selected } : current));
               }}
-              value={confirming?.retouch ?? "global"}
+              value={confirming?.retouch ?? DEFAULT_RETOUCH}
             >
               <SelectTrigger className="h-11 w-full" size="default">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {retouchItems.map((item) => (
+                {RETOUCH_LEVELS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -268,7 +261,7 @@ export function ReferencePicker({
               disabled={actionDisabled}
               onClick={() => {
                 if (!confirming) return;
-                onGenerate(confirming.reference, confirming.retouch ?? globalRetouch);
+                onGenerate(confirming.reference, confirming.retouch ?? DEFAULT_RETOUCH);
                 setConfirming(undefined);
                 setIsZoomOpen(false);
                 setIsDrawerOpen(false);
