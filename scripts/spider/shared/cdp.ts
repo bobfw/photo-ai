@@ -33,7 +33,7 @@ export async function evaluateOnPage<T>(pageUrl: string, expression: string): Pr
   }
   if (!response.ok) throw new Error(`连接浏览器失败：${response.status}`);
 
-  const browser = await response.json();
+  const browser = (await response.json()) as BrowserVersion;
   const ws = new WebSocket(browser.webSocketDebuggerUrl);
 
   try {
