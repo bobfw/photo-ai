@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "photo-ai",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a4c0b049-1d8b-468e-9e97-cf47f183a400",
       "migrations_dir": "drizzle",
       "migrations_pattern": "drizzle/**/migration.sql",
     },
