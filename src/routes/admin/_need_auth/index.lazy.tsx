@@ -11,15 +11,8 @@ import { cn } from "cn";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "#ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "#ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "#ui/card";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 import { Input } from "#ui/input";
 import {
   Pagination,
@@ -35,8 +28,8 @@ import { toast } from "#ui/toast";
 
 import { clearApiKey, getApiKey } from "./-internal/api-key.ts";
 import { isUnauthorized } from "./-internal/auth.ts";
-import { VOUCHER_PLATFORMS, platformLabel, type VoucherPlatform } from "./-internal/platforms.ts";
-import { createVoucherBatch, distributeVoucher, listVouchers } from "./-internal/services/admin.ts";
+import { platformLabel } from "./-internal/platforms.ts";
+import { createVoucher, distributeVoucher, listVouchers } from "./-internal/services/admin.ts";
 import { VOUCHER_TYPES, voucherTypeLabel, type VoucherType } from "./-internal/voucher-types.ts";
 
 export const Route = createLazyFileRoute("/admin/_need_auth/")({
@@ -63,13 +56,16 @@ const USAGE_FILTERS = [
   { value: "used", label: "已用完" },
 ] as const;
 
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.add({ title: "已复制", type: "success" });
-  } catch {
-    toast.add({ title: "复制失败，请手动选择复制", type: "error" });
-  }
+function voucherCopyText(code: string, createdAt: number) {
+  const time = new Date(createdAt).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `凭证码：${code}\n生成时间：${time}`;
 }
 
 function AdminPage() {
@@ -80,7 +76,10 @@ function AdminPage() {
   const apiKey = getApiKey();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [created, setCreated] = useState<string[]>([]);
+  const [created, setCreated] = useState<{ code: string; createdAt: number }[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [draft, setDraft] = useState<{ type: VoucherType; total: number; edits: number }>();
+  const [confirming, setConfirming] = useState(false);
   const [sessionDistributed, setSessionDistributed] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -117,35 +116,47 @@ function AdminPage() {
 
   const refreshVouchers = () => queryClient.invalidateQueries({ queryKey: ["admin", "vouchers"] });
 
+  const distributeMutation = useMutation({
+    mutationFn: (code: string) => distributeVoucher({ data: { code, key: getApiKey() } }),
+    onSuccess: (_result, code) => {
+      setSessionDistributed((codes) => (codes.includes(code) ? codes : [...codes, code]));
+      void refreshVouchers();
+    },
+  });
+
+  const copyVoucher = async (voucher: { code: string; createdAt: number }) => {
+    try {
+      await navigator.clipboard.writeText(voucherCopyText(voucher.code, voucher.createdAt));
+    } catch {
+      toast.add({ title: "复制失败，请手动选择复制", type: "error" });
+      return;
+    }
+    toast.add({ title: "已复制，并分发到小红书", type: "success" });
+    distributeMutation.mutate(voucher.code);
+  };
+
   const createMutation = useMutation({
-    mutationFn: (input: { type: VoucherType; total: number; edits: number; count: number }) =>
-      createVoucherBatch({ data: { ...input, key: getApiKey() } }),
-    onSuccess: (codes) => {
-      setCreated(codes);
+    mutationFn: (input: { type: VoucherType; total: number; edits: number }) =>
+      createVoucher({ data: { ...input, key: getApiKey() } }),
+    onSuccess: ({ code, createdAt }) => {
+      setCreated([{ code, createdAt }]);
+      setConfirming(false);
+      setCreateOpen(false);
       setPage(1);
       void refreshVouchers();
-      toast.add({ title: `已生成 ${codes.length} 个凭证`, type: "success" });
+      void copyVoucher({ code, createdAt });
     },
   });
 
-  const distributeMutation = useMutation({
-    mutationFn: (input: { id: number; platform: VoucherPlatform }) =>
-      distributeVoucher({ data: { ...input, key: getApiKey() } }),
-    onSuccess: (_result, input) => {
-      const code = data?.vouchers.find((voucher) => voucher.id === input.id)?.code;
-      if (code) {
-        setSessionDistributed((codes) => (codes.includes(code) ? codes : [...codes, code]));
-      }
-      void refreshVouchers();
-      toast.add({ title: "已标记分发", type: "success" });
-    },
-  });
-
+  const distributedCodes = new Set([
+    ...(data?.vouchers ?? []).flatMap((voucher) =>
+      voucher.platform === null ? [] : [voucher.code],
+    ),
+    ...sessionDistributed,
+  ]);
   const pageCount = Math.max(1, Math.ceil((data?.total ?? 0) / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const columns = buildColumns(distributeMutation.isPending, (id, platform) => {
-    distributeMutation.mutate({ id, platform });
-  });
+  const columns = buildColumns(distributedCodes, (voucher) => void copyVoucher(voucher));
   const table = useTable(
     {
       data: data?.vouchers ?? [],
@@ -182,34 +193,175 @@ function AdminPage() {
   const { vouchers, stats, total } = data;
   const hasFilters = typeFilter !== "all" || distributionFilter !== "all" || usageFilter !== "all";
   let emptyMessage = "本页没有凭证。";
-  if (stats.total === 0) emptyMessage = "还没有凭证，先在上方生成。";
+  if (stats.total === 0) emptyMessage = "还没有凭证，点「生成凭证」创建。";
   else if (total === 0) emptyMessage = "没有符合筛选的凭证。";
-  const distributedCodes = new Set([
-    ...vouchers.filter((voucher) => voucher.platform !== null).map((voucher) => voucher.code),
-    ...sessionDistributed,
-  ]);
-  const copyableCreated = created.filter((code) => !distributedCodes.has(code));
 
   return (
     <main className="bg-background min-h-dvh">
       <div className="mx-auto w-full max-w-5xl px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
-        <header className="border-border/60 flex items-center justify-between gap-4 border-b pb-5">
+        <header className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b pb-5">
           <div className="space-y-1">
             <h1 className="font-heading text-2xl">凭证管理</h1>
             <p className="text-muted-foreground text-xs tracking-wide">出片 · 婚纱照</p>
           </div>
-          <Button
-            className="h-11"
-            onClick={() => {
-              clearApiKey();
-              void navigate({ to: "/admin/login", replace: true });
-            }}
-            type="button"
-            variant="outline"
-          >
-            退出登录
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              className="h-11"
+              onClick={() => {
+                createMutation.reset();
+                setDraft(undefined);
+                setConfirming(false);
+                setCreateOpen(true);
+              }}
+              type="button"
+            >
+              生成凭证
+            </Button>
+            <Button
+              className="h-11"
+              onClick={() => {
+                clearApiKey();
+                void navigate({ to: "/admin/login", replace: true });
+              }}
+              type="button"
+              variant="outline"
+            >
+              退出登录
+            </Button>
+          </div>
         </header>
+
+        <Dialog
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (open) {
+              return;
+            }
+
+            setConfirming(false);
+            setDraft(undefined);
+          }}
+          open={createOpen}
+        >
+          <DialogContent>
+            <div className="space-y-1.5">
+              <DialogTitle>{confirming ? "确认生成" : "生成凭证"}</DialogTitle>
+              <DialogDescription>
+                {confirming
+                  ? "请确认以下信息，确认后立即生成。"
+                  : "一次生成一个凭证；写真凭证暂未接入生成流程。"}
+              </DialogDescription>
+            </div>
+            {confirming && draft ? (
+              <div className="space-y-3">
+                <div className="bg-muted/50 space-y-1 rounded-lg px-3 py-2.5 text-sm">
+                  <p>{voucherTypeLabel(draft.type)} · 1 个凭证</p>
+                  <p className="text-muted-foreground">
+                    每张可生成 {draft.total} 张，每张可修改 {draft.edits} 次。
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    className="h-11 flex-1"
+                    disabled={createMutation.isPending}
+                    onClick={() => {
+                      setConfirming(false);
+                    }}
+                    type="button"
+                    variant="outline"
+                  >
+                    返回
+                  </Button>
+                  <Button
+                    className="h-11 flex-1"
+                    disabled={createMutation.isPending}
+                    onClick={() => {
+                      createMutation.mutate(draft);
+                    }}
+                    type="button"
+                  >
+                    {createMutation.isPending ? "生成中…" : "确认生成"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  const type = form.get("type");
+                  if (typeof type !== "string") return;
+                  setDraft({
+                    type: type as VoucherType,
+                    total: Number(form.get("total")),
+                    edits: Number(form.get("edits")),
+                  });
+                  setConfirming(true);
+                }}
+              >
+                <label className="block space-y-1.5">
+                  <span className="text-muted-foreground text-xs">凭证类型</span>
+                  <select
+                    className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border px-2 text-sm outline-none focus-visible:ring-3"
+                    defaultValue={draft?.type ?? "wedding"}
+                    name="type"
+                    required
+                  >
+                    {VOUCHER_TYPES.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="space-y-1.5">
+                    <span className="text-muted-foreground text-xs">张数</span>
+                    <Input
+                      className="h-11"
+                      defaultValue={draft?.total}
+                      max={5}
+                      min={1}
+                      name="total"
+                      required
+                      type="number"
+                    />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-muted-foreground text-xs">每张可修改次数</span>
+                    <Input
+                      className="h-11"
+                      defaultValue={draft?.edits}
+                      max={5}
+                      min={0}
+                      name="edits"
+                      required
+                      type="number"
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <DialogClose
+                    render={<Button className="h-11 flex-1" type="button" variant="outline" />}
+                  >
+                    取消
+                  </DialogClose>
+                  <Button className="h-11 flex-1" type="submit">
+                    下一步
+                  </Button>
+                </div>
+              </form>
+            )}
+            {createMutation.error ? (
+              <p className="text-destructive text-sm" role="alert">
+                {isUnauthorized(createMutation.error)
+                  ? "API Key 已失效，请重新登录"
+                  : createMutation.error.message}
+              </p>
+            ) : undefined}
+          </DialogContent>
+        </Dialog>
 
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="全部凭证" value={stats.total} />
@@ -220,113 +372,14 @@ function AdminPage() {
           <Stat label="已用完" value={stats.used} />
         </dl>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>生成凭证</CardTitle>
-            <CardDescription>一次最多 100 个；写真凭证暂未接入生成流程。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="flex flex-col gap-3 sm:flex-row sm:items-end"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const form = new FormData(event.currentTarget);
-                const type = form.get("type");
-                if (typeof type !== "string") return;
-                createMutation.mutate({
-                  type: type as VoucherType,
-                  total: Number(form.get("total")),
-                  edits: Number(form.get("edits")),
-                  count: Number(form.get("count")),
-                });
-              }}
-            >
-              <label className="space-y-1.5 sm:w-40">
-                <span className="text-muted-foreground text-xs">凭证类型</span>
-                <select
-                  className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border px-2 text-sm outline-none focus-visible:ring-3"
-                  defaultValue="wedding"
-                  name="type"
-                  required
-                >
-                  {VOUCHER_TYPES.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex-1 space-y-1.5">
-                <span className="text-muted-foreground text-xs">每张可生成张数</span>
-                <Input
-                  className="h-11"
-                  defaultValue={5}
-                  max={100}
-                  min={1}
-                  name="total"
-                  required
-                  type="number"
-                />
-              </label>
-              <label className="flex-1 space-y-1.5">
-                <span className="text-muted-foreground text-xs">每张可修改次数</span>
-                <Input
-                  className="h-11"
-                  defaultValue={5}
-                  max={100}
-                  min={0}
-                  name="edits"
-                  required
-                  type="number"
-                />
-              </label>
-              <label className="flex-1 space-y-1.5">
-                <span className="text-muted-foreground text-xs">生成数量</span>
-                <Input
-                  className="h-11"
-                  defaultValue={1}
-                  max={100}
-                  min={1}
-                  name="count"
-                  required
-                  type="number"
-                />
-              </label>
-              <Button className="h-11 px-5" disabled={createMutation.isPending} type="submit">
-                {createMutation.isPending ? "生成中…" : "生成凭证"}
-              </Button>
-            </form>
-            {createMutation.error ? (
-              <p className="text-destructive mt-3 text-sm" role="alert">
-                {isUnauthorized(createMutation.error)
-                  ? "API Key 已失效，请重新登录"
-                  : createMutation.error.message}
-              </p>
-            ) : undefined}
-          </CardContent>
-        </Card>
-
         {created.length > 0 ? (
           <Card className="mt-4">
             <CardHeader>
               <CardTitle>本次生成</CardTitle>
-              <CardAction>
-                <Button
-                  aria-label="复制本次生成中未分发的凭证码"
-                  className="h-11"
-                  disabled={copyableCreated.length === 0}
-                  onClick={() => void copyText(copyableCreated.join("\n"))}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  复制未分发
-                </Button>
-              </CardAction>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {created.map((code) => (
+                {created.map(({ code, createdAt }) => (
                   <li
                     className="bg-muted/50 flex items-center justify-between gap-3 rounded-lg px-3 py-2"
                     key={code}
@@ -335,7 +388,7 @@ function AdminPage() {
                     <CopyButton
                       code={code}
                       disabled={distributedCodes.has(code)}
-                      onClick={() => void copyText(code)}
+                      onClick={() => void copyVoucher({ code, createdAt })}
                     />
                   </li>
                 ))}
@@ -483,10 +536,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function buildColumns(
-  isDistributing: boolean,
-  onDistribute: (id: number, platform: VoucherPlatform) => void,
-) {
+function buildColumns(distributedCodes: Set<string>, onCopy: (voucher: Voucher) => void) {
   return columnHelper.columns([
     columnHelper.accessor("code", {
       header: "凭证码",
@@ -517,18 +567,31 @@ function buildColumns(
       header: "已用 / 额度",
       cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
     }),
+    columnHelper.accessor(
+      (voucher) =>
+        `${voucher.generatedCount + voucher.editsUsed} / ${
+          voucher.totalImages + voucher.totalImages * voucher.maxEdits
+        }`,
+      {
+        id: "totalUsage",
+        header: "已用 / 总次数",
+        cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
+      },
+    ),
     columnHelper.accessor("createdAt", {
       header: "创建时间",
-      cell: ({ getValue }) => new Date(getValue()).toLocaleDateString("zh-CN"),
+      cell: ({ getValue }) => new Date(getValue()).toLocaleString("zh-CN", { hour12: false }),
     }),
     columnHelper.display({
       id: "actions",
       header: "操作",
       cell: ({ row }) => (
-        <VoucherActions
-          isDistributing={isDistributing}
-          onDistribute={onDistribute}
-          voucher={row.original}
+        <CopyButton
+          code={row.original.code}
+          disabled={row.original.platform !== null || distributedCodes.has(row.original.code)}
+          onClick={() => {
+            onCopy(row.original);
+          }}
         />
       ),
     }),
@@ -541,66 +604,6 @@ function columnClass(columnId: string, kind: "head" | "cell") {
   if (columnId === "status" && kind === "cell") return "whitespace-normal";
   if (columnId === "actions") return "text-right";
   return;
-}
-
-function VoucherActions({
-  voucher,
-  isDistributing,
-  onDistribute,
-}: {
-  voucher: Voucher;
-  isDistributing: boolean;
-  onDistribute: (id: number, platform: VoucherPlatform) => void;
-}) {
-  const isDistributed = voucher.platform !== null;
-
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      {isDistributed ? undefined : (
-        <form
-          className="flex items-center gap-1.5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const platform = new FormData(event.currentTarget).get("platform");
-            if (typeof platform === "string") {
-              onDistribute(voucher.id, platform as VoucherPlatform);
-            }
-          }}
-        >
-          <select
-            aria-label="分发平台"
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-11 rounded-lg border px-2 text-sm outline-none focus-visible:ring-3 sm:h-8"
-            defaultValue=""
-            name="platform"
-            required
-          >
-            <option disabled value="">
-              分发到…
-            </option>
-            {VOUCHER_PLATFORMS.map((platform) => (
-              <option key={platform.value} value={platform.value}>
-                {platform.label}
-              </option>
-            ))}
-          </select>
-          <Button
-            className="h-11 sm:h-8"
-            disabled={isDistributing}
-            size="sm"
-            type="submit"
-            variant="outline"
-          >
-            分发
-          </Button>
-        </form>
-      )}
-      <CopyButton
-        code={voucher.code}
-        disabled={isDistributed}
-        onClick={() => void copyText(voucher.code)}
-      />
-    </div>
-  );
 }
 
 function FilterSelect<T extends string>({

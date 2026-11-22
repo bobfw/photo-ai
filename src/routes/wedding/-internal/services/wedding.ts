@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { editWeddingPose, generateWeddingPose } from "#agents/wedding";
@@ -112,22 +112,6 @@ async function recordGeneration(
   });
 }
 
-// ponytail: 每次访问时全表扫描过期记录；量大了再换成定时任务。
-async function cleanupExpiredImages() {
-  const expired = await database
-    .select({ id: generatedImages.id })
-    .from(generatedImages)
-    .where(lt(generatedImages.expiresAt, Date.now()));
-  if (expired.length === 0) return;
-
-  await database.delete(generatedImages).where(
-    inArray(
-      generatedImages.id,
-      expired.map((row) => row.id),
-    ),
-  );
-}
-
 // Ark 没有 CORS 头，canvas 不能直接导出跨域图，统一走 /media 同源代理
 function imageProxyUrl(source: string) {
   return `/media/${btoa(source).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "")}`;
@@ -208,8 +192,6 @@ export const getVoucherState = createServerFn({ method: "POST" })
     const voucher = await loadVoucher(data.code);
     if (!voucher) return;
 
-    await cleanupExpiredImages();
-
     const notExpired = gt(generatedImages.expiresAt, Date.now());
     const rows = await database
       .select()
@@ -255,7 +237,6 @@ export const generatePoseImage = createServerFn({ method: "POST" })
     const voucher = await loadVoucher(data.code);
     if (!voucher) throw new Error("凭证无效");
     assertTermsAccepted(voucher);
-    await cleanupExpiredImages();
 
     // 先原子占用一个额度，失败再退还。
     const reserved = await database.run(sql`
@@ -374,8 +355,6 @@ export const regenerateWedding = createServerFn({ method: "POST" })
     if (!series) throw new Error("系列不存在");
     const ratio = findImageRatio(row.ratio);
     if (!ratio) throw new Error("比例不存在");
-
-    await cleanupExpiredImages();
 
     // 重新生成和提示词修改共用每张图的修改次数，先原子占用，失败再退还。
     const reserved = await database.run(sql`

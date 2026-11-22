@@ -66,9 +66,10 @@ judging UI from source alone.
   `pnpm cf-typegen` and must not be edited by hand.
 - Generated images are stored as Ark URLs in D1 and proxied same-origin by
   `src/routes/media/$.ts` (Ark sends no CORS headers, so the canvas cannot export them
-  directly). Generated image rows expire after 24 hours; `generation_records` and the
-  terms-acceptance fields on `vouchers` are permanent dispute evidence and must not be
-  cleaned up.
+  directly). Only the image URLs expire (24 hours; a future R2 backend should expire
+  objects via its lifecycle instead). Keep every D1 row: `generated_images`,
+  `generation_records` and the terms-acceptance fields on `vouchers` are permanent usage
+  and dispute evidence and must not be cleaned up.
 
 ## Code Organization
 

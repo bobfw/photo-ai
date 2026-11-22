@@ -1,16 +1,25 @@
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
-import { and, count, desc, eq, gt, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  gte,
+  isNotNull,
+  isNull,
+  lt,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import { database } from "#services/database";
-import { vouchers } from "#services/schema";
+import { generatedImages, vouchers } from "#services/schema";
 
 import { UNAUTHORIZED } from "../auth.ts";
-import { VOUCHER_PLATFORMS, type VoucherPlatform } from "../platforms.ts";
 import { VOUCHER_TYPES, type VoucherType } from "../voucher-types.ts";
-
-const MAX_BATCH = 100;
 
 const keyInput = z.object({ key: z.string().min(1, "缺少 API Key").max(200) });
 const distributionFilterSchema = z.enum(["all", "undistributed", "distributed"]);
@@ -41,16 +50,11 @@ const voucherTypeSchema = z.enum(
 );
 const createInput = keyInput.extend({
   type: voucherTypeSchema,
-  total: z.number().int().min(1, "每张至少可生成 1 张").max(100, "每张最多 100 张"),
-  edits: z.number().int().min(0, "可修改次数不能小于 0").max(100, "每张最多修改 100 次"),
-  count: z.number().int().min(1, "至少生成 1 个").max(MAX_BATCH, `一次最多生成 ${MAX_BATCH} 个`),
+  total: z.number().int().min(1, "每张至少可生成 1 张").max(5, "每张最多 5 张"),
+  edits: z.number().int().min(0, "可修改次数不能小于 0").max(5, "每张最多修改 5 次"),
 });
-const platformSchema = z.enum(
-  VOUCHER_PLATFORMS.map((platform) => platform.value) as [VoucherPlatform, ...VoucherPlatform[]],
-);
 const distributeInput = keyInput.extend({
-  id: z.number().int().positive(),
-  platform: platformSchema,
+  code: z.string().min(1).max(200),
 });
 
 function unauthorizedError() {
@@ -85,7 +89,14 @@ export const listVouchers = createServerFn({ method: "POST" })
     );
     const [filtered] = await database.select({ total: count() }).from(vouchers).where(filter);
     const rows = await database
-      .select()
+      .select({
+        ...getTableColumns(vouchers),
+        editsUsed: sql<number>`(
+          select coalesce(sum(${generatedImages.editCount}), 0)
+          from ${generatedImages}
+          where ${generatedImages.voucherId} = ${vouchers.id}
+        )`.as("edits_used"),
+      })
       .from(vouchers)
       .where(filter)
       .orderBy(desc(vouchers.createdAt), desc(vouchers.id))
@@ -94,34 +105,28 @@ export const listVouchers = createServerFn({ method: "POST" })
     return { vouchers: rows, stats, total: filtered.total };
   });
 
-export const createVoucherBatch = createServerFn({ method: "POST" })
+export const createVoucher = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
   .validator((data) => createInput.parse(data))
   .handler(async ({ data }) => {
+    const code = crypto.randomUUID();
     const createdAt = Date.now();
-    const codes = Array.from({ length: data.count }, () => crypto.randomUUID());
-    await database.insert(vouchers).values(
-      codes.map((code) => ({
-        code,
-        type: data.type,
-        totalImages: data.total,
-        maxEdits: data.edits,
-        createdAt,
-      })),
-    );
-    return codes;
+    await database.insert(vouchers).values({
+      code,
+      type: data.type,
+      totalImages: data.total,
+      maxEdits: data.edits,
+      createdAt,
+    });
+    return { code, createdAt };
   });
 
 export const distributeVoucher = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
   .validator((data) => distributeInput.parse(data))
   .handler(async ({ data }) => {
-    const rows = await database.select().from(vouchers).where(eq(vouchers.id, data.id)).limit(1);
-    const voucher = rows.at(0);
-    if (!voucher) throw new Error("凭证不存在");
-    if (voucher.platform !== null) throw new Error("凭证已分发，不能重复分发");
     await database
       .update(vouchers)
-      .set({ platform: data.platform })
-      .where(eq(vouchers.id, data.id));
+      .set({ platform: "xiaohongshu" })
+      .where(and(eq(vouchers.code, data.code), isNull(vouchers.platform)));
   });
