@@ -118,7 +118,7 @@ function AdminPage() {
   const refreshVouchers = () => queryClient.invalidateQueries({ queryKey: ["admin", "vouchers"] });
 
   const createMutation = useMutation({
-    mutationFn: (input: { type: VoucherType; total: number; count: number }) =>
+    mutationFn: (input: { type: VoucherType; total: number; edits: number; count: number }) =>
       createVoucherBatch({ data: { ...input, key: getApiKey() } }),
     onSuccess: (codes) => {
       setCreated(codes);
@@ -236,6 +236,7 @@ function AdminPage() {
                 createMutation.mutate({
                   type: type as VoucherType,
                   total: Number(form.get("total")),
+                  edits: Number(form.get("edits")),
                   count: Number(form.get("count")),
                 });
               }}
@@ -263,6 +264,18 @@ function AdminPage() {
                   max={100}
                   min={1}
                   name="total"
+                  required
+                  type="number"
+                />
+              </label>
+              <label className="flex-1 space-y-1.5">
+                <span className="text-muted-foreground text-xs">每张可修改次数</span>
+                <Input
+                  className="h-11"
+                  defaultValue={5}
+                  max={100}
+                  min={0}
+                  name="edits"
                   required
                   type="number"
                 />

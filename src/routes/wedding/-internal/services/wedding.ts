@@ -1,18 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { editWeddingImage, generateWeddingImage } from "#agents/wedding";
+import { editWeddingPose, generateWeddingPose } from "#agents/wedding";
 import { database } from "#services/database";
-import { generatedImageVersions, generatedImages, vouchers } from "#services/schema";
-import { getImage } from "#services/storage";
+import { generatedImages, generationRecords, vouchers } from "#services/schema";
 
-import { findReference } from "./references.ts";
+import { findImageRatio, findPoseSeries, POSE_COUNT, poseImageUrl } from "./poses.ts";
 
 const VOUCHER_TYPE = "wedding";
 const IMAGE_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_EDITS = 5;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+// 分辨率档位写死在后台，前端只选姿态；生成统一 2:3，3:4 只在换背景导出时选择
+const GENERATION_SIZE = "2K";
+const GENERATION_RATIO = "2:3";
+
+// Ark 使用档位时由模型决定像素，宽高比要在 prompt 里用自然语言写明
+function aspectPrompt(ratio: string) {
+  return `${ratio} 竖幅`;
+}
 
 const codeSchema = z.string().min(1, "凭证格式不正确").max(64, "凭证格式不正确");
 
@@ -23,68 +31,85 @@ const imageDataUrlSchema = z
 
 const voucherInput = z.object({ code: codeSchema });
 
-const referenceInput = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("curated"),
-    key: z.string().min(1, "请选择参考图").max(200, "参考图地址不正确"),
-  }),
-  z.object({
-    kind: z.literal("custom"),
-    dataUrl: imageDataUrlSchema,
-  }),
-]);
-
-const bodySizeSchema = z.object({
-  height: z.number().min(100, "身高请填写 100–250 cm").max(250, "身高请填写 100–250 cm").optional(),
-  weight: z.number().min(30, "体重请填写 30–200 kg").max(200, "体重请填写 30–200 kg").optional(),
-});
-
 const generateInput = z.object({
   code: codeSchema,
-  reference: referenceInput,
+  series: z.string().min(1, "请选择系列").max(64, "系列不存在"),
+  pose: z.number().int().min(1, "姿态不存在").max(POSE_COUNT, "姿态不存在"),
+  // 老客户端不带 outfit 时沿用系列默认服装
+  outfit: z.string().trim().min(1, "请填写服装").max(200, "服装描述请控制在 200 字以内").optional(),
   faces: z.array(imageDataUrlSchema).length(2, "双人婚纱照需要上传两张照片"),
-  bodySizes: z.array(bodySizeSchema).length(2, "双人婚纱照需要两个人的身高体重"),
-  retouch: z.enum(["natural", "refined", "retouched"]),
+  request: z.string().trim().max(200, "补充要求请控制在 200 字以内").default(""),
 });
 
 const editInput = z.object({
   code: codeSchema,
   imageId: z.number().int().positive(),
-  versionId: z.number().int().nonnegative(),
+  // 当前选中的版本（同源代理 URL），前端切换历史版本时只改本地状态
+  url: z.string().min(1).max(4096),
   instruction: z.string().trim().min(1, "请描述想怎么修改").max(500, "修改描述请控制在 500 字以内"),
-  retouch: z.enum(["natural", "refined", "retouched"]),
 });
 
 const regenerateInput = z.object({
   code: codeSchema,
   imageId: z.number().int().positive(),
   faces: z.array(imageDataUrlSchema).length(2, "双人婚纱照需要上传两张照片"),
-  bodySizes: z.array(bodySizeSchema).length(2, "双人婚纱照需要两个人的身高体重"),
-  retouch: z.enum(["natural", "refined", "retouched"]),
 });
 
-export interface PublicImageVersion {
-  id: number;
+interface ImageVersion {
   url: string;
-  instruction?: string;
   createdAt: number;
 }
 
 export interface PublicImage {
   id: number;
   url: string;
-  referenceKey: string;
-  editCount: number;
+  versions: ImageVersion[];
+  series: string;
+  pose: number;
+  ratio: string;
   remainingEdits: number;
   createdAt: number;
   expiresAt: number;
-  versions: PublicImageVersion[];
 }
 
 async function loadVoucher(code: string) {
   const rows = await database.select().from(vouchers).where(eq(vouchers.code, code)).limit(1);
   const voucher = rows.at(0);
   return voucher?.type === VOUCHER_TYPE ? voucher : undefined;
+}
+
+function assertTermsAccepted(voucher: typeof vouchers.$inferSelect) {
+  if (typeof voucher.termsAcceptedAt !== "number") throw new Error("请先同意用户协议");
+}
+
+function requestMetadata() {
+  const request = getRequest();
+  return {
+    ip:
+      request.headers.get("cf-connecting-ip") ??
+      request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim() ??
+      "",
+    country: request.headers.get("cf-ipcountry") ?? "",
+    userAgent: request.headers.get("user-agent") ?? "",
+  };
+}
+
+async function recordGeneration(
+  voucherId: number,
+  kind: "generate" | "regenerate",
+  series: string,
+  poseIndex: number,
+  ratio: string,
+) {
+  await database.insert(generationRecords).values({
+    voucherId,
+    kind,
+    series,
+    poseIndex,
+    ratio,
+    ...requestMetadata(),
+    createdAt: Date.now(),
+  });
 }
 
 // ponytail: 每次访问时全表扫描过期记录；量大了再换成定时任务。
@@ -95,49 +120,86 @@ async function cleanupExpiredImages() {
     .where(lt(generatedImages.expiresAt, Date.now()));
   if (expired.length === 0) return;
 
-  const ids = expired.map((row) => row.id);
-  await database.delete(generatedImageVersions).where(inArray(generatedImageVersions.imageId, ids));
-  await database.delete(generatedImages).where(inArray(generatedImages.id, ids));
+  await database.delete(generatedImages).where(
+    inArray(
+      generatedImages.id,
+      expired.map((row) => row.id),
+    ),
+  );
 }
 
-function toPublicVersion(row: typeof generatedImageVersions.$inferSelect): PublicImageVersion {
-  return {
-    id: row.id,
-    url: row.imageUrl,
-    instruction: row.instruction ?? undefined,
-    createdAt: row.createdAt,
-  };
+// Ark 没有 CORS 头，canvas 不能直接导出跨域图，统一走 /media 同源代理
+function imageProxyUrl(source: string) {
+  return `/media/${btoa(source).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "")}`;
 }
 
-function toPublicImage(
+function readVersions(value: string) {
+  return JSON.parse(value) as ImageVersion[];
+}
+
+// 前端传同源代理 URL；换回 Ark URL，并确认它属于这张图。
+function resolveVersionUrl(row: typeof generatedImages.$inferSelect, publicUrl: string) {
+  if (imageProxyUrl(row.imageUrl) === publicUrl) return row.imageUrl;
+
+  const version = readVersions(row.versions).find((item) => imageProxyUrl(item.url) === publicUrl);
+  if (!version) throw new Error("版本不存在");
+  if (version.createdAt + IMAGE_TTL_MS <= Date.now()) throw new Error("这个版本已过期");
+  return version.url;
+}
+
+// 修改/重新生成前把旧图记进历史；老数据没有 versions，顺手补上当前图。
+function appendVersion(
   row: typeof generatedImages.$inferSelect,
-  versions: PublicImageVersion[],
-): PublicImage {
+  version: ImageVersion,
+): ImageVersion[] {
+  const versions = readVersions(row.versions);
+  if (versions.every((item) => item.url !== row.imageUrl)) {
+    versions.push({ url: row.imageUrl, createdAt: row.createdAt });
+  }
+  versions.push(version);
+  return versions;
+}
+
+function toPublicImage(row: typeof generatedImages.$inferSelect, maxEdits: number): PublicImage {
+  const now = Date.now();
   return {
     id: row.id,
-    url: row.imageUrl,
-    referenceKey: row.referenceKey,
-    editCount: row.editCount,
-    remainingEdits: Math.max(0, MAX_EDITS - row.editCount),
+    url: imageProxyUrl(row.imageUrl),
+    versions: readVersions(row.versions)
+      .filter((version) => version.createdAt + IMAGE_TTL_MS > now)
+      .map((version) => ({ url: imageProxyUrl(version.url), createdAt: version.createdAt })),
+    series: row.series,
+    pose: row.poseIndex,
+    ratio: row.ratio,
+    remainingEdits: Math.max(0, maxEdits - row.editCount),
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
-    versions:
-      versions.length > 0 ? versions : [{ id: 0, url: row.imageUrl, createdAt: row.createdAt }],
   };
 }
 
-async function loadVersions(imageId: number) {
-  const rows = await database
-    .select()
-    .from(generatedImageVersions)
-    .where(eq(generatedImageVersions.imageId, imageId))
-    .orderBy(generatedImageVersions.createdAt, generatedImageVersions.id);
-  return rows.map((row) => toPublicVersion(row));
+// 当前图和姿态图都从外部 URL 取；服务端读取不受 CORS 限制。生成结果固定是 PNG。
+async function loadImageDataUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`读取当前图片失败（${response.status}）`);
+  return `data:image/png;base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
 }
 
-async function loadAsDataUrl(key: string) {
-  const { data, contentType } = await getImage(key);
-  return `data:${contentType};base64,${Buffer.from(data).toString("base64")}`;
+async function loadPoseImage(series: string, pose: number) {
+  const response = await fetch(poseImageUrl(series, pose));
+  if (!response.ok) throw new Error(`读取姿态图失败（${response.status}）`);
+  return `data:image/png;base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
+}
+
+async function loadImageRow(voucherId: number, imageId: number) {
+  const rows = await database
+    .select()
+    .from(generatedImages)
+    .where(and(eq(generatedImages.id, imageId), eq(generatedImages.voucherId, voucherId)))
+    .limit(1);
+  const row = rows.at(0);
+  if (!row) throw new Error("照片不存在");
+  if (row.expiresAt <= Date.now()) throw new Error("照片已过期");
+  return row;
 }
 
 export const getVoucherState = createServerFn({ method: "POST" })
@@ -155,39 +217,44 @@ export const getVoucherState = createServerFn({ method: "POST" })
       .where(and(eq(generatedImages.voucherId, voucher.id), notExpired))
       .orderBy(generatedImages.createdAt);
 
-    const imageIds = rows.map((row) => row.id);
-    const versionRows =
-      imageIds.length === 0
-        ? []
-        : await database
-            .select()
-            .from(generatedImageVersions)
-            .where(inArray(generatedImageVersions.imageId, imageIds))
-            .orderBy(generatedImageVersions.createdAt, generatedImageVersions.id);
-    const versionsByImage = new Map<number, PublicImageVersion[]>();
-    for (const versionRow of versionRows) {
-      const versions = versionsByImage.get(versionRow.imageId) ?? [];
-      versions.push(toPublicVersion(versionRow));
-      versionsByImage.set(versionRow.imageId, versions);
-    }
-
     return {
       totalImages: voucher.totalImages,
       generatedCount: voucher.generatedCount,
       remaining: Math.max(0, voucher.totalImages - voucher.generatedCount),
-      images: rows.map((row) => toPublicImage(row, versionsByImage.get(row.id) ?? [])),
+      termsAccepted: typeof voucher.termsAcceptedAt === "number",
+      images: rows.map((row) => toPublicImage(row, voucher.maxEdits)),
     };
   });
 
-export const generateWedding = createServerFn({ method: "POST" })
-  .validator((data) => generateInput.parse(data))
-  .handler(async ({ data }): Promise<PublicImage> => {
-    if (data.reference.kind === "curated" && !findReference(data.reference.key)) {
-      throw new Error("参考图不存在");
-    }
-
+export const acceptVoucherTerms = createServerFn({ method: "POST" })
+  .validator((data) => voucherInput.parse(data))
+  .handler(async ({ data }) => {
     const voucher = await loadVoucher(data.code);
     if (!voucher) throw new Error("凭证无效");
+    // 保留第一次同意的记录，不覆盖
+    if (typeof voucher.termsAcceptedAt === "number") return;
+    const metadata = requestMetadata();
+
+    await database
+      .update(vouchers)
+      .set({
+        termsAcceptedAt: Date.now(),
+        termsAcceptedIp: metadata.ip,
+        termsAcceptedCountry: metadata.country,
+        termsAcceptedUserAgent: metadata.userAgent,
+      })
+      .where(eq(vouchers.id, voucher.id));
+  });
+
+export const generatePoseImage = createServerFn({ method: "POST" })
+  .validator((data) => generateInput.parse(data))
+  .handler(async ({ data }): Promise<PublicImage> => {
+    const series = findPoseSeries(data.series);
+    if (!series) throw new Error("系列不存在");
+    const outfit = data.outfit ?? series.outfit;
+    const voucher = await loadVoucher(data.code);
+    if (!voucher) throw new Error("凭证无效");
+    assertTermsAccepted(voucher);
     await cleanupExpiredImages();
 
     // 先原子占用一个额度，失败再退还。
@@ -199,46 +266,36 @@ export const generateWedding = createServerFn({ method: "POST" })
     if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
 
     try {
-      const reference =
-        data.reference.kind === "custom"
-          ? data.reference.dataUrl
-          : await loadAsDataUrl(data.reference.key);
-      const imageUrl = await generateWeddingImage({
-        faces: data.faces,
-        reference,
-        bodySizes: data.bodySizes,
-        retouch: data.retouch,
-      });
+      await recordGeneration(voucher.id, "generate", data.series, data.pose, GENERATION_RATIO);
+
+      const [bride, groom] = data.faces;
+      const poseImage = await loadPoseImage(data.series, data.pose);
+      const sourceUrl = await generateWeddingPose(
+        [bride, groom],
+        poseImage,
+        outfit,
+        GENERATION_SIZE,
+        aspectPrompt(GENERATION_RATIO),
+        data.request,
+      );
 
       const createdAt = Date.now();
       const inserted = await database
         .insert(generatedImages)
         .values({
           voucherId: voucher.id,
-          imageUrl,
-          faceKeys: "[]",
-          referenceKey: data.reference.kind === "custom" ? "custom" : data.reference.key,
-          mode: "couple",
-          editCount: 0,
+          imageUrl: sourceUrl,
+          poseIndex: data.pose,
+          series: data.series,
+          ratio: GENERATION_RATIO,
+          versions: JSON.stringify([{ url: sourceUrl, createdAt }]),
           createdAt,
           expiresAt: createdAt + IMAGE_TTL_MS,
         })
         .returning();
       const row = inserted.at(0);
       if (!row) throw new Error("保存照片失败");
-
-      const insertedVersion = await database
-        .insert(generatedImageVersions)
-        .values({
-          imageId: row.id,
-          imageUrl,
-          createdAt,
-        })
-        .returning();
-      const version = insertedVersion.at(0);
-      if (!version) throw new Error("保存照片失败");
-
-      return toPublicImage(row, [toPublicVersion(version)]);
+      return toPublicImage(row, voucher.maxEdits);
     } catch (error) {
       await database.run(sql`
         UPDATE vouchers
@@ -254,68 +311,47 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PublicImage> => {
     const voucher = await loadVoucher(data.code);
     if (!voucher) throw new Error("凭证无效");
-
-    const rows = await database
-      .select()
-      .from(generatedImages)
-      .where(and(eq(generatedImages.id, data.imageId), eq(generatedImages.voucherId, voucher.id)))
-      .limit(1);
-    const row = rows.at(0);
-    if (!row) throw new Error("照片不存在");
-    if (row.expiresAt <= Date.now()) throw new Error("照片已过期");
-    if (row.editCount >= MAX_EDITS) throw new Error(`每张照片最多修改 ${MAX_EDITS} 次`);
-
-    let sourceUrl = row.imageUrl;
-    if (data.versionId !== 0) {
-      const versionRows = await database
-        .select()
-        .from(generatedImageVersions)
-        .where(
-          and(
-            eq(generatedImageVersions.id, data.versionId),
-            eq(generatedImageVersions.imageId, row.id),
-          ),
-        )
-        .limit(1);
-      const version = versionRows.at(0);
-      if (!version) throw new Error("版本不存在");
-      sourceUrl = version.imageUrl;
-    }
+    assertTermsAccepted(voucher);
+    const row = await loadImageRow(voucher.id, data.imageId);
+    const ratio = findImageRatio(row.ratio);
+    if (!ratio) throw new Error("比例不存在");
 
     // 先原子占用一次修改次数，失败再退还。
     const reserved = await database.run(sql`
       UPDATE generated_images
       SET edit_count = edit_count + 1
-      WHERE id = ${row.id} AND edit_count < ${MAX_EDITS}
+      WHERE id = ${row.id} AND edit_count < ${voucher.maxEdits}
     `);
-    if (reserved.meta.changes === 0) throw new Error(`每张照片最多修改 ${MAX_EDITS} 次`);
+    if (reserved.meta.changes === 0) {
+      throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+    }
 
     try {
-      const imageUrl = await editWeddingImage({
-        photo: sourceUrl,
-        instruction: data.instruction,
-        retouch: data.retouch,
-      });
+      const photo = await loadImageDataUrl(resolveVersionUrl(row, data.url));
+      const remoteUrl = await editWeddingPose(
+        photo,
+        data.instruction,
+        GENERATION_SIZE,
+        aspectPrompt(ratio.value),
+      );
 
       const createdAt = Date.now();
-      await database.batch([
-        database.insert(generatedImageVersions).values({
-          imageId: row.id,
-          imageUrl,
-          instruction: data.instruction,
-          createdAt,
-        }),
-        database.update(generatedImages).set({ imageUrl }).where(eq(generatedImages.id, row.id)),
-      ]);
+      const expiresAt = createdAt + IMAGE_TTL_MS;
+      const versions = appendVersion(row, { url: remoteUrl, createdAt });
+      await database
+        .update(generatedImages)
+        .set({ imageUrl: remoteUrl, expiresAt, versions: JSON.stringify(versions) })
+        .where(eq(generatedImages.id, row.id));
 
-      const versions = await loadVersions(row.id);
       return toPublicImage(
         {
           ...row,
-          imageUrl,
+          imageUrl: remoteUrl,
+          versions: JSON.stringify(versions),
           editCount: row.editCount + 1,
+          expiresAt,
         },
-        versions,
+        voucher.maxEdits,
       );
     } catch (error) {
       await database.run(sql`
@@ -332,54 +368,61 @@ export const regenerateWedding = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PublicImage> => {
     const voucher = await loadVoucher(data.code);
     if (!voucher) throw new Error("凭证无效");
-
-    const rows = await database
-      .select()
-      .from(generatedImages)
-      .where(and(eq(generatedImages.id, data.imageId), eq(generatedImages.voucherId, voucher.id)))
-      .limit(1);
-    const row = rows.at(0);
-    if (!row) throw new Error("照片不存在");
-    if (row.expiresAt <= Date.now()) throw new Error("照片已过期");
-    if (row.referenceKey === "custom") throw new Error("自定义造型不支持重新生成");
-    if (!findReference(row.referenceKey)) throw new Error("参考图不存在");
+    assertTermsAccepted(voucher);
+    const row = await loadImageRow(voucher.id, data.imageId);
+    const series = findPoseSeries(row.series);
+    if (!series) throw new Error("系列不存在");
+    const ratio = findImageRatio(row.ratio);
+    if (!ratio) throw new Error("比例不存在");
 
     await cleanupExpiredImages();
 
-    // 重新生成消耗一次照片额度，失败再退还。
+    // 重新生成和提示词修改共用每张图的修改次数，先原子占用，失败再退还。
     const reserved = await database.run(sql`
-      UPDATE vouchers
-      SET generated_count = generated_count + 1
-      WHERE id = ${voucher.id} AND generated_count < total_images
+      UPDATE generated_images
+      SET edit_count = edit_count + 1
+      WHERE id = ${row.id} AND edit_count < ${voucher.maxEdits}
     `);
-    if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
+    if (reserved.meta.changes === 0) {
+      throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+    }
 
     try {
-      const reference = await loadAsDataUrl(row.referenceKey);
-      const imageUrl = await generateWeddingImage({
-        faces: data.faces,
-        reference,
-        bodySizes: data.bodySizes,
-        retouch: data.retouch,
-      });
+      await recordGeneration(voucher.id, "regenerate", row.series, row.poseIndex, row.ratio);
+
+      const [bride, groom] = data.faces;
+      const poseImage = await loadPoseImage(row.series, row.poseIndex);
+      const remoteUrl = await generateWeddingPose(
+        [bride, groom],
+        poseImage,
+        series.outfit,
+        GENERATION_SIZE,
+        aspectPrompt(ratio.value),
+      );
 
       const createdAt = Date.now();
-      await database.batch([
-        database.insert(generatedImageVersions).values({
-          imageId: row.id,
-          imageUrl,
-          createdAt,
-        }),
-        database.update(generatedImages).set({ imageUrl }).where(eq(generatedImages.id, row.id)),
-      ]);
+      const expiresAt = createdAt + IMAGE_TTL_MS;
+      const versions = appendVersion(row, { url: remoteUrl, createdAt });
+      await database
+        .update(generatedImages)
+        .set({ imageUrl: remoteUrl, expiresAt, versions: JSON.stringify(versions) })
+        .where(eq(generatedImages.id, row.id));
 
-      const versions = await loadVersions(row.id);
-      return toPublicImage({ ...row, imageUrl }, versions);
+      return toPublicImage(
+        {
+          ...row,
+          imageUrl: remoteUrl,
+          versions: JSON.stringify(versions),
+          editCount: row.editCount + 1,
+          expiresAt,
+        },
+        voucher.maxEdits,
+      );
     } catch (error) {
       await database.run(sql`
-        UPDATE vouchers
-        SET generated_count = generated_count - 1
-        WHERE id = ${voucher.id} AND generated_count > 0
+        UPDATE generated_images
+        SET edit_count = edit_count - 1
+        WHERE id = ${row.id} AND edit_count > 0
       `);
       throw error;
     }

@@ -1,41 +1,36 @@
-import { generatePhoto } from "../generate-photo.ts";
-import {
-  type BodySize,
-  type RetouchLevel,
-  buildWeddingEditInstruction,
-  buildWeddingInstruction,
-} from "./prompts.ts";
-
-// const WEDDING_SIZE = "1344x1792";
-const WEDDING_SIZE = "1776x2368";
+import { generatePhoto, type ImageSize } from "../generate-photo.ts";
+import { buildWeddingPoseEditPrompt, buildWeddingPosePrompt } from "./prompts.ts";
 
 /**
- * 生成一张婚纱照：新郎两张面部参考，加上一张场景与造型参考图。
+ * 按姿势线稿生成一张透明背景的婚纱照：图 1 新娘、图 2 新郎、图 3 姿势。
  * 返回图片 URL（24 小时内有效）。
  */
-export async function generateWeddingImage(input: {
-  faces: string[];
-  reference: string;
-  bodySizes: BodySize[];
-  retouch: RetouchLevel;
-}): Promise<string> {
-  const { text, references } = buildWeddingInstruction(input);
-  return generate(text, references);
+export async function generateWeddingPose(
+  faces: [string, string],
+  pose: string,
+  outfit: string,
+  size: ImageSize,
+  aspect: string,
+  request = "",
+): Promise<string> {
+  return generatePhoto(buildWeddingPosePrompt(outfit, aspect, request), {
+    references: [faces[0], faces[1], pose],
+    size,
+  });
 }
 
 /**
- * 按文字描述修改已生成的婚纱照。
+ * 按提示词微调当前婚纱照，保持人物、姿势和透明背景。
  * 返回新图片 URL（24 小时内有效）。
  */
-export async function editWeddingImage(input: {
-  photo: string;
-  instruction: string;
-  retouch: RetouchLevel;
-}): Promise<string> {
-  const { text, references } = buildWeddingEditInstruction(input);
-  return generate(text, references);
-}
-
-async function generate(text: string, references: string[]) {
-  return generatePhoto(text, { references, size: WEDDING_SIZE });
+export async function editWeddingPose(
+  photo: string,
+  instruction: string,
+  size: ImageSize,
+  aspect: string,
+): Promise<string> {
+  return generatePhoto(buildWeddingPoseEditPrompt(instruction, aspect), {
+    references: [photo],
+    size,
+  });
 }

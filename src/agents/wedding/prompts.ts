@@ -1,76 +1,36 @@
-export interface BuiltWeddingInstruction {
-  text: string;
-  references: string[];
+/**
+ * 婚纱/礼服姿势提示词。
+ * 参考图顺序：图 1 新娘、图 2 新郎、图 3 姿势线稿。
+ * 按 Seedream 提示词指南：编号指代参考图，两段式——先写保留哪些参考元素，再写生成画面；
+ * 编辑指令指明对象，并显式写「保持……不变」。中文提示词控制在 300 字左右。
+ * 优先级：人物身份 > 姿势与互动 > 人体比例 > 服装 > 构图与背景。
+ * 该接口没有独立 negative_prompt 字段，禁止项直接写在正文里。
+ */
+
+const KEEP_REFERENCES =
+  "图1（女生）、图2（男生）保留面部身份、脸型、骨相和五官比例，像本人，不换脸、不网红脸；图3仅保留姿势、动作、互动和左右站位，不保留它的头身比、腿长和人物高度。";
+
+export function buildWeddingPosePrompt(outfit: string, aspect: string, request = ""): string {
+  const requestLine =
+    request.trim() === ""
+      ? []
+      : [`用户补充要求：${request.trim()}（与前面的要求冲突时，以前面的要求为准）`];
+
+  return [
+    KEEP_REFERENCES,
+    `生成真实的双人婚纱礼服写真：皮肤冷白透亮、细腻真实，妆容自然，光影柔和；${outfit}`,
+    "两人均为高挑修长的写真模特体态：约7.5–8头身，腿长（胯到脚底）约占身高一半，腰线偏高，身体纵向舒展，头部大小自然；避免矮胖、短腿、五五分、躯干压缩、横向膨胀，不要照搬线稿的矮比例。礼服自然垂坠，避免裙摆横向扩张。",
+    ...requestLine,
+    "人物完整呈现，构图舒展，头顶适当留白，脚部不裁切；图3有坐具才生成坐具。",
+    `画面比例 ${aspect}；只保留人物、服装及姿势所需坐具；不要背景、地面、投影、文字、水印、Logo、边框。`,
+  ].join("\n");
 }
 
-export interface BodySize {
-  height?: number;
-  weight?: number;
-}
-
-export type RetouchLevel = "natural" | "refined" | "retouched";
-
-const RETOUCH_SECTIONS: Record<RetouchLevel, string> = {
-  natural: "自然修图：保留皮肤真实质感和毛孔，只去掉明显瑕疵，不磨皮、不美白、不改变脸型和五官。",
-  refined: "精致修图：适度磨皮，保留皮肤质感，肤色均匀提亮，可轻微瘦脸，五官保持本人特征。",
-  retouched: "精修：皮肤干净细腻，五官和脸型更精致，但仍能一眼认出本人。",
-};
-
-const PHOTO_STYLE =
-  "真实相机拍摄的婚纱摄影作品，人物与场景的光线自然融合，皮肤和婚纱质感真实。画面不要文字、水印、Logo、边框，不要多余的人物、肢体或手指。";
-
-function bodySection(label: string, bodySize: BodySize) {
-  const facts = [
-    bodySize.height === undefined ? undefined : `身高 ${bodySize.height} cm`,
-    bodySize.weight === undefined ? undefined : `体重 ${bodySize.weight} kg`,
-  ].filter((fact) => fact !== undefined);
-  if (facts.length === 0) return "";
-
-  return `${label}${facts.join("、")}，身材按这个数据调整，服装自然贴合，脸型和五官保持不变。`;
-}
-
-export function buildWeddingInstruction(input: {
-  faces: string[];
-  reference: string;
-  bodySizes: BodySize[];
-  retouch: RetouchLevel;
-}): BuiltWeddingInstruction {
-  const { faces, reference, bodySizes, retouch } = input;
-
-  if (faces.length !== 2) throw new Error("双人模式需要两张人物照片");
-  if (bodySizes.length !== 2) throw new Error("双人模式需要两个人的身高体重");
-
-  return {
-    references: [...faces, reference],
-    text: [
-      "以图 3 为底图生成婚纱照，把新娘替换为图 1 中的人，新郎替换为图 2 中的人，两人都面带自然的微笑，看向镜头。面部严格参考对应照片，保留本人原有的脸型、五官特征和面部比例，不要改变或重新塑造面部特征。",
-      "图 3 的服装、发型、姿势、构图、背景和光线均按原图还原，灰色人体模型仅为去除原人物身份特征的处理，生成时恢复真实的人体、肤色及头发。",
-      "图 3 有几个人就生成几个人，人物位置与对应身份保持一致，不要对调或新增人物",
-      bodySection("新娘", bodySizes[0]),
-      bodySection("新郎", bodySizes[1]),
-      RETOUCH_SECTIONS[retouch],
-      PHOTO_STYLE,
-    ]
-      .filter((section) => section !== "")
-      .join("\n\n"),
-  };
-}
-
-export function buildWeddingEditInstruction(input: {
-  photo: string;
-  instruction: string;
-  retouch: RetouchLevel;
-}): BuiltWeddingInstruction {
-  const { photo, instruction, retouch } = input;
-
-  return {
-    references: [photo],
-    text: [
-      "图 1 是当前照片。",
-      `在图 1 中，${instruction}。`,
-      "只改这一处，其余全部保持不变：人物身份、五官、妆容、发型、服装、场景、光线、构图、姿势和表情。修改后仍是同一个人，不换脸。",
-      RETOUCH_SECTIONS[retouch],
-      PHOTO_STYLE,
-    ].join("\n\n"),
-  };
+export function buildWeddingPoseEditPrompt(instruction: string, aspect: string): string {
+  return [
+    "参考图1是当前成片。",
+    `只修改：${instruction}。`,
+    "保持人物身份、脸型、骨相、五官、发型、服装、姿势、构图和画面风格不变；不换人、不增减人物。",
+    `输出 ${aspect} 的婚纱礼服写真照片；不要添加背景、文字、水印、Logo 或边框。`,
+  ].join("\n");
 }

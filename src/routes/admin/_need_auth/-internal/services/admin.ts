@@ -42,6 +42,7 @@ const voucherTypeSchema = z.enum(
 const createInput = keyInput.extend({
   type: voucherTypeSchema,
   total: z.number().int().min(1, "每张至少可生成 1 张").max(100, "每张最多 100 张"),
+  edits: z.number().int().min(0, "可修改次数不能小于 0").max(100, "每张最多修改 100 次"),
   count: z.number().int().min(1, "至少生成 1 个").max(MAX_BATCH, `一次最多生成 ${MAX_BATCH} 个`),
 });
 const platformSchema = z.enum(
@@ -99,9 +100,15 @@ export const createVoucherBatch = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const createdAt = Date.now();
     const codes = Array.from({ length: data.count }, () => crypto.randomUUID());
-    await database
-      .insert(vouchers)
-      .values(codes.map((code) => ({ code, type: data.type, totalImages: data.total, createdAt })));
+    await database.insert(vouchers).values(
+      codes.map((code) => ({
+        code,
+        type: data.type,
+        totalImages: data.total,
+        maxEdits: data.edits,
+        createdAt,
+      })),
+    );
     return codes;
   });
 

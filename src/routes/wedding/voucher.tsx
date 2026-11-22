@@ -8,18 +8,44 @@ import { Checkbox } from "#ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 import { Input } from "#ui/input";
 
+import { acceptVoucherTerms } from "./-internal/services/wedding.ts";
+
 export const Route = createFileRoute("/wedding/voucher")({
-  validateSearch: z.object({ error: z.literal("invalid").optional() }),
+  validateSearch: z.object({
+    error: z.enum(["invalid", "consent"]).optional(),
+    code: z.string().optional(),
+  }),
   component: VoucherPage,
 });
 
+function initialError(error: "invalid" | "consent" | undefined) {
+  if (error === "invalid") return "凭证无效，请检查后重试";
+  return "";
+}
+
 function VoucherPage() {
   const navigate = useNavigate();
-  const { error: redirectError } = Route.useSearch();
-  const [code, setCode] = useState("");
+  const { error: redirectError, code: redirectedCode } = Route.useSearch();
+  const [code, setCode] = useState(redirectedCode ?? "");
   const [agreed, setAgreed] = useState(false);
   const [consentOpen, setConsentOpen] = useState(false);
-  const [error, setError] = useState(redirectError === "invalid" ? "凭证无效，请检查后重试" : "");
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [error, setError] = useState(initialError(redirectError));
+
+  async function acceptAndEnter() {
+    const value = code.trim();
+    if (!value) return;
+    setError("");
+    setIsAccepting(true);
+    try {
+      await acceptVoucherTerms({ data: { code: value } });
+      await navigate({ to: "/wedding", search: { code: value } });
+    } catch (acceptError) {
+      setError(acceptError instanceof Error ? acceptError.message : "凭证无效，请检查后重试");
+    } finally {
+      setIsAccepting(false);
+    }
+  }
 
   return (
     <main className="bg-background flex min-h-dvh flex-col">
@@ -53,10 +79,11 @@ function VoucherPage() {
                 return;
               }
               if (!agreed) {
+                setError("请先阅读并同意用户协议");
                 setConsentOpen(true);
                 return;
               }
-              void navigate({ to: "/wedding", search: { code: value } });
+              void acceptAndEnter();
             }}
           >
             <Input
@@ -68,11 +95,8 @@ function VoucherPage() {
               enterKeyHint="go"
               className="bg-card h-12 rounded-full px-5 font-mono text-base tracking-wider"
               onChange={(event) => {
-                const value = event.target.value.trim();
-                setCode(value);
-                if (agreed && z.uuid().safeParse(value).success) {
-                  void navigate({ to: "/wedding", search: { code: value } });
-                }
+                setCode(event.target.value.trim());
+                setError("");
               }}
               placeholder="粘贴凭证码"
               spellCheck={false}
@@ -100,8 +124,13 @@ function VoucherPage() {
                 </a>
               </span>
             </label>
-            <Button className="w-full" disabled={code.trim().length === 0} size="cta" type="submit">
-              开始生成
+            <Button
+              className="w-full"
+              disabled={code.trim().length === 0 || isAccepting}
+              size="cta"
+              type="submit"
+            >
+              {isAccepting ? "验证中…" : "开始生成"}
             </Button>
           </form>
 
@@ -131,7 +160,7 @@ function VoucherPage() {
                   onClick={() => {
                     setAgreed(true);
                     setConsentOpen(false);
-                    void navigate({ to: "/wedding", search: { code: code.trim() } });
+                    void acceptAndEnter();
                   }}
                   size="cta"
                   type="button"

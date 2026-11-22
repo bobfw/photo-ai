@@ -1,1 +1,0 @@
-ALTER TABLE `generated_images` RENAME COLUMN `storage_key` TO `image_url`;

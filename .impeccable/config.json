@@ -1,0 +1,36 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": ["test-img/stickers/xi-jia-vertical.html"],
+        "createdAt": "2026-11-21T07:08:35.611Z",
+        "reason": "Decorative sticker asset rendered on transparent background for red/dark wedding-photo backgrounds; WCAG UI contrast does not apply."
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": ["test-img/stickers/xi-jia-landscape.html"],
+        "createdAt": "2026-11-21T07:15:31.410Z",
+        "reason": "Decorative sticker asset rendered on transparent background for red/dark wedding-photo backgrounds; WCAG UI contrast does not apply."
+      },
+      {
+        "rule": "wide-tracking",
+        "value": "*",
+        "files": ["test-img/stickers/xi-jia-landscape.html"],
+        "createdAt": "2026-11-21T07:26:00.354Z",
+        "reason": "Decorative sticker asset: tracking is measured from the reference sticker to match its layout; not UI body text."
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": ["test-img/stickers/wu-jia-you-xi.html"],
+        "createdAt": "2026-11-21T07:32:45.759Z",
+        "reason": "Decorative sticker asset rendered on transparent background for red/dark wedding-photo backgrounds; WCAG UI contrast does not apply."
+      }
+    ]
+  }
+}

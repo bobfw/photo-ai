@@ -14,34 +14,36 @@ The operator runs the product and handles customer support through the private a
 
 ## Product Purpose
 
-出片 (photo-ai) is an AI wedding photography studio. A customer enters a voucher code, uploads one frontal photo of each partner, picks wedding styles from a curated library, and receives one photorealistic wedding photo per style in minutes.
+出片 (photo-ai) is an AI wedding photography studio. A customer enters a voucher code, uploads one frontal photo of each partner, picks a pose from a curated wedding-pose series, and receives one transparent-background wedding photo of the two of them per pose in minutes.
 
-Success means both partners recognize themselves in the result — identity accuracy outranks beautification — and the image reads as a real camera photograph rather than an AI render.
+Success means both partners recognize themselves in the result — identity accuracy outranks beautification — and the cutout reads as a real camera photograph rather than an AI render.
 
 ## Positioning
 
-A voucher-gated AI studio for wedding photos: the customer chooses a real wedding-photography look and their own two faces are placed into it with likeness as the highest priority. Access is a prepaid code distributed through social commerce, and the style catalog is curated by the operator rather than open-prompt, so every result starts from a real photograph the customer would plausibly want.
+A voucher-gated AI studio for wedding photos: the customer picks a pose from a curated series and their own two faces are generated into it with likeness as the highest priority. Access is a prepaid code distributed through social commerce, and the pose catalog is curated by the operator, so every result starts from a composition the customer would plausibly want.
 
 ## Operating Context
 
 - Purchase happens off-app: the customer buys a voucher in a shop on 小红书, 淘宝, 闲鱼, or 抖音, receives a UUID code, and enters it on the site.
-- Customer flow: enter code → upload two frontal photos → pick styles → generate → optionally describe edits → download. Each selected style reference produces one image, drawn from the voucher's fixed image quota.
-- Each generated image can be edited up to five times with a text instruction. An edit replaces the current image and consumes an edit, not voucher quota.
-- Uploaded portraits are downscaled in the browser (long edge ≤ 2048 px) and sent for generation only; they are not stored. Generated images are kept for 24 hours, then expire and are cleaned up.
-- Operations: the admin console creates batches of 1–100 codes (1–100 images per voucher) and records the distribution platform. It is protected by an API key.
-- Reference styles are curated from public photography portfolios: 14 Instagram posts and 2 weddingbook.studio sets, recorded with source URLs in `src/routes/wedding/-internal/services/groups.json`. The image files are local-only and gitignored; only the manifest is committed.
-- Runs on Cloudflare Workers with D1 and R2; media is served from `/media`; local development is on port 5701.
+- Customer flow: enter code and accept the user agreement → upload two frontal photos → pick a series and pose → generate → optionally adjust with a text prompt or regenerate from the original photos → choose the output ratio, a background color, add stickers, save the composed PNG from the browser. Each new pose generation consumes one image from the voucher's fixed quota; prompt adjustments and regeneration use the image's modification budget instead.
+- The studio route rejects a valid code until the agreement has been accepted. Acceptance records the time, IP, country, and user agent on the voucher; every generation or regeneration start is appended to a permanent log with the voucher, kind, series, pose, ratio, and request metadata for dispute handling.
+- Background color and stickers are composed entirely in the browser on a canvas. Prompt-based adjustments and full regeneration happen on the server and replace the current transparent PNG while keeping earlier versions selectable as history; both consume the per-image modification count configured when the voucher is created, not photo quota.
+- If the couple does not look like themselves, the UI recommends regenerating from the original photos instead of prompt editing.
+- Uploaded portraits are downscaled in the browser (long edge ≤ 2048 px) and sent for generation only; they are not stored. Generated PNGs are referenced by their Ark URL and their records expire after 24 hours.
+- Operations: the admin console creates batches of 1–100 codes, each with 1–100 images and a per-image modification count, and records the distribution platform. It is protected by an API key.
+- Poses come from six sketch series (经典婚纱、轻法式、现代喜嫁风、新中式-旗袍、新中式-秀禾、新中式-秀禾-轻松风), each a 5 × 4 sheet split into local images; the split script removes the printed numbers and grid lines, and the app reads the files from `image.chupian.date`.
+- Runs on Cloudflare Workers with D1; local development is on port 5701.
 
 ## Capabilities and Constraints
 
-- Wedding vouchers have a fixed image quota; multiple vouchers coexist. Quota is reserved atomically and returned if generation fails.
-- Input is exactly two frontal photos (JPG/PNG/WebP) plus at least one reference style. The number of people in the output follows the reference image: a single-person reference yields a single-person photo even though two faces are uploaded.
-- Output is one 3:4 portrait per selected reference, generated with a prompt that prioritizes identity fidelity, then photographic realism (real skin, fabric, light; no text, watermarks, or logos).
-- Editing is free text per image, up to five times; identity and wedding attributes must survive the edit.
-- Generated images and their database rows expire after 24 hours. Uploaded face photos are not persisted.
+- Wedding vouchers have a fixed image quota; multiple vouchers coexist. New-generation quota is reserved atomically and returned if generation fails. Each image also has a voucher-configured modification count shared by prompt edits and regeneration.
+- Input is two frontal photos (JPG/PNG/WebP) and one pose from the series. The pose sketch supplies only the pose; the faces and wedding outfits are generated from the photos.
+- Output is one portrait per pose at 2:3, generated with a prompt that prioritizes identity fidelity, then photographic realism (real skin, fabric, light; no text, watermarks, or logos), on a true transparent background. The background composer can export the final image at 2:3 or 3:4.
+- The transparent PNG stays on Ark's URL and is proxied same-origin through `/media` so the browser canvas can compose and export it without cross-origin taint.
+- Generated image records expire after 24 hours, as does the Ark URL. Uploaded face photos are not persisted.
 - Portrait (写真) vouchers exist as a type in the admin console, but the portrait generation flow is not wired up; the console states this.
 - The interface is Simplified Chinese only. There is no account system or in-app payment.
-- Undecided: permission status for the reference photos, pricing, and when the portrait flow launches.
+- Undecided: pricing and when the portrait flow launches.
 
 ## Brand Commitments
 
@@ -52,7 +54,7 @@ A voucher-gated AI studio for wedding photos: the customer chooses a real weddin
 
 ## Evidence on Hand
 
-- Style library: 16 groups and 203 reference photos, listed in `src/routes/wedding/-internal/services/groups.json` with source URLs (14 Instagram posts and 2 weddingbook.studio portfolios). The image files live in `reference-images/` and are gitignored; the manifest is committed.
+- Pose library: six sketch series (20 poses each) served from `image.chupian.date`.
 - The text wordmark “出片” and `public/favicon.svg`; no other brand assets are in the repository.
 - Absent: customer samples, testimonials, reviews, press, pricing, and shop listings. None may be fabricated.
 
@@ -62,7 +64,7 @@ A voucher-gated AI studio for wedding photos: the customer chooses a real weddin
 2. **Real photography is the bar.** Every result must read as a real camera photograph — real skin, fabric, light, and depth — not an illustration, 3D render, or beauty filter.
 3. **The voucher is the product boundary.** No accounts, no in-app payment; keep the path from code to downloadable photo short and reliable on a phone.
 4. **Privacy is a promise, not a setting.** Uploaded faces are never stored; generated work expires after 24 hours.
-5. **Curate the catalog.** Styles are chosen from real photographs by the operator. Keep the choice bounded enough that every option can meet the quality bar.
+5. **Curate the catalog.** Poses are curated by the operator. Keep the choice bounded enough that every option can meet the quality bar.
 
 ## Accessibility & Inclusion
 

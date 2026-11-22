@@ -1,22 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
-import { Input } from "#ui/input";
 import { toast } from "#ui/toast";
 
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
-import { ReferencePicker } from "./-internal/components/reference-picker.tsx";
+import { PosePicker, type PoseChoice } from "./-internal/components/pose-picker.tsx";
 import { ResultCard } from "./-internal/components/result-card.tsx";
-import { REFERENCE_GROUPS, type ReferenceChoice } from "./-internal/services/references.ts";
-import { DEFAULT_RETOUCH } from "./-internal/services/retouch.ts";
-import {
-  generateWedding,
-  getVoucherState,
-  regenerateWedding,
-} from "./-internal/services/wedding.ts";
+import { generatePoseImage, getVoucherState } from "./-internal/services/wedding.ts";
 
 /* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
 
@@ -36,6 +29,9 @@ export const Route = createFileRoute("/wedding/")({
     if (!state) {
       throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
     }
+    if (!state.termsAccepted) {
+      throw redirect({ to: "/wedding/voucher", search: { code, error: "consent" } });
+    }
     return { code, state };
   },
   pendingComponent: () => <CenteredMessage>正在验证凭证…</CenteredMessage>,
@@ -48,76 +44,33 @@ function WeddingPage() {
 }
 
 function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
-  const router = useRouter();
-  const [reference, setReference] = useState<ReferenceChoice>();
+  const [images, setImages] = useState(state.images);
+  const [remaining, setRemaining] = useState(state.remaining);
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
-  const [bodyA, setBodyA] = useStoredBodyDraft("wedding_body_a");
-  const [bodyB, setBodyB] = useStoredBodyDraft("wedding_body_b");
   const hasPhotos = photoA !== "" && photoB !== "";
-  const selectedImageUrl = reference?.kind === "custom" ? reference.dataUrl : reference?.url;
+  const canGenerate = hasPhotos && remaining > 0;
 
   const generateMutation = useMutation({
-    mutationFn: async (referenceChoice: ReferenceChoice) => {
-      if (!hasPhotos) {
-        throw new Error("请上传女生和男生的照片");
-      }
-      await generateWedding({
+    mutationFn: (choice: PoseChoice) =>
+      generatePoseImage({
         data: {
           code,
-          reference: toServerReference(referenceChoice),
+          series: choice.series,
+          pose: choice.pose,
+          outfit: choice.outfit,
           faces: [photoA, photoB],
-          bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
-          retouch: DEFAULT_RETOUCH,
+          request: choice.request,
         },
-      });
-    },
-    onSuccess: () => {
-      setReference(undefined);
+      }),
+    onSuccess: (image) => {
+      setImages((current) => [...current, image]);
+      setRemaining((current) => Math.max(0, current - 1));
       toast.add({
         title: "生成完成",
-        description: "已放进你们的婚纱照",
+        description: "可以换背景、加贴纸了",
         type: "success",
       });
-    },
-    onSettled: () => {
-      void router.invalidate();
-    },
-  });
-
-  // 造型在发起生成时锁定，生成期间不允许更换。
-  function handleGenerate(referenceChoice: ReferenceChoice) {
-    setReference(referenceChoice);
-    generateMutation.mutate(referenceChoice);
-  }
-
-  const regenerateMutation = useMutation({
-    mutationFn: async (imageId: number) => {
-      if (!hasPhotos) {
-        throw new Error("请先上传人像照片");
-      }
-      await regenerateWedding({
-        data: {
-          code,
-          imageId,
-          faces: [photoA, photoB],
-          bodySizes: [toBodySize(bodyA), toBodySize(bodyB)],
-          retouch: DEFAULT_RETOUCH,
-        },
-      });
-    },
-    onSuccess: () => {
-      toast.add({
-        description: "已添加一个新版本",
-        title: "重新生成完成",
-        type: "success",
-      });
-    },
-    onError: (error) => {
-      toast.add({ title: error.message, type: "error" });
-    },
-    onSettled: () => {
-      void router.invalidate();
     },
   });
 
@@ -127,74 +80,71 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-heading text-2xl">出片 · 婚纱照</h1>
           <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
-            还可生成 {state.remaining} 张
+            还可生成 {remaining} 张
           </span>
         </div>
 
         <section className="border-border/60 mt-6 space-y-4 border-t pt-6">
-          <StepHeading index="01" title="上传照片" hint="请使用正脸、光线均匀、无遮挡的单人照。" />
+          <StepHeading
+            index="01"
+            title="上传照片"
+            hint="请用正脸、光线均匀、无遮挡、自己 P 过且满意的单人照，男生照片尤其要先 P，出图质量会好很多。"
+          />
           <div className="mx-auto grid max-w-80 grid-cols-2 gap-4">
             <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
             <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
           </div>
-          <div className="mx-auto max-w-80 space-y-2">
-            <p className="text-muted-foreground text-xs">
-              身高体重（选填，只为让身形更像你们自己）
-            </p>
-            <BodySizeFields label="女生" onChange={setBodyA} value={bodyA} />
-            <BodySizeFields label="男生" onChange={setBodyB} value={bodyB} />
-          </div>
-          <p className="border-border/60 text-foreground flex items-center gap-2 border-t pt-3 text-[13px] leading-5 font-medium">
+          <p className="text-foreground -mt-1 flex items-center gap-2 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
             隐私承诺：不会保存你上传的照片，仅用于本次生成。
           </p>
         </section>
 
-        <section className="border-border/60 mt-8 space-y-4 border-t pt-6">
+        <section className="border-border/60 mt-4 space-y-4 border-t pt-4">
           <StepHeading
             index="02"
             title="你们的婚纱照"
-            hint="选一张喜欢的造型，确认后生成；新的照片会出现在这里。"
+            hint="选一个系列和姿态，确认时可写补充要求；生成后可以换背景、加贴纸。"
           />
-          {state.images.length > 0 ? (
+          {images.length > 0 ? (
             <div className="flex items-end justify-between gap-4">
               <p className="text-muted-foreground text-[13px] leading-5">
                 图片仅保留 24 小时，请及时保存。
               </p>
               <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
-                {state.images.length} 张
+                {images.length} 张
               </span>
             </div>
           ) : undefined}
-          {state.images.length > 0 || generateMutation.isPending ? (
+          {images.length > 0 || generateMutation.isPending ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {state.images.map((image) => (
+              {images.map((image) => (
                 <ResultCard
-                  canRegenerate={hasPhotos && state.remaining > 0 && !regenerateMutation.isPending}
                   code={code}
+                  faces={[photoA, photoB]}
+                  hasPhotos={hasPhotos}
                   image={image}
-                  isRegenerating={
-                    regenerateMutation.isPending && regenerateMutation.variables === image.id
-                  }
                   key={image.id}
-                  onRegenerate={() => {
-                    regenerateMutation.mutate(image.id);
+                  onImageChange={(updated) => {
+                    setImages((current) =>
+                      current.map((item) => (item.id === updated.id ? updated : item)),
+                    );
                   }}
-                  regenerateHint={regenerateHintLabel(hasPhotos, state.remaining)}
                 />
               ))}
               {generateMutation.isPending ? (
-                <GeneratingCard imageUrl={selectedImageUrl} />
+                <GeneratingCard pose={generateMutation.variables.pose} />
               ) : undefined}
             </div>
           ) : undefined}
           <div className={generateMutation.isPending ? "hidden" : undefined}>
-            <ReferencePicker
-              actionDisabled={!hasPhotos || state.remaining === 0}
-              actionLabel={previewActionLabel(state.remaining, hasPhotos)}
-              groups={REFERENCE_GROUPS}
-              onGenerate={handleGenerate}
-              triggerLabel={state.images.length === 0 ? "生成第一张婚纱照" : "再生成一张婚纱照"}
+            <PosePicker
+              actionDisabled={!canGenerate}
+              actionLabel={actionLabel(remaining, hasPhotos)}
+              onGenerate={(choice) => {
+                generateMutation.mutate(choice);
+              }}
+              triggerLabel={images.length === 0 ? "选一个姿态开始生成" : "再生成一张婚纱照"}
             />
             {generateMutation.error ? (
               <p className="text-destructive mt-4 text-center text-sm" role="alert">
@@ -222,15 +172,14 @@ function StepHeading({ index, title, hint }: { index: string; title: string; hin
   );
 }
 
-function GeneratingCard({ imageUrl }: { imageUrl: string | undefined }) {
+function GeneratingCard({ pose }: { pose: number }) {
   return (
     <div aria-busy="true" className="w-full">
-      <div className="border-border relative aspect-3/4 overflow-hidden rounded-2xl border">
-        {imageUrl ? (
-          <img alt="" className="size-full object-cover" src={imageUrl} />
-        ) : (
-          <div className="bg-secondary size-full" />
-        )}
+      <div
+        className="border-border relative overflow-hidden rounded-2xl border"
+        style={{ aspectRatio: "2 / 3" }}
+      >
+        <div className="bg-secondary size-full" />
         <div
           className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
           role="status"
@@ -240,9 +189,9 @@ function GeneratingCard({ imageUrl }: { imageUrl: string | undefined }) {
             className="text-primary size-7 animate-spin motion-reduce:animate-none"
             strokeWidth={1.5}
           />
-          <p className="font-heading text-xl">正在生成这一张</p>
+          <p className="font-heading text-xl">正在生成姿态 {pose}</p>
           <p className="text-muted-foreground text-[13px] leading-5">
-            预计 1–3 分钟，请稍等一会儿。
+            预计 20 秒–2 分钟，请勿刷新页面。
           </p>
         </div>
       </div>
@@ -250,113 +199,10 @@ function GeneratingCard({ imageUrl }: { imageUrl: string | undefined }) {
   );
 }
 
-function previewActionLabel(remaining: number, hasPhotos: boolean) {
+function actionLabel(remaining: number, hasPhotos: boolean) {
   if (remaining === 0) return "照片额度已用完";
   if (!hasPhotos) return "请先上传人像照片";
-  return "生成这张婚纱照";
-}
-
-function regenerateHintLabel(hasPhotos: boolean, remaining: number) {
-  if (!hasPhotos) return "请先上传人像照片";
-  if (remaining === 0) return "照片额度已用完";
-  return "将消耗 1 张额度";
-}
-
-function toServerReference(reference: ReferenceChoice) {
-  if (reference.kind === "custom") {
-    return { kind: "custom" as const, dataUrl: reference.dataUrl };
-  }
-  return { kind: "curated" as const, key: reference.key };
-}
-
-interface BodyDraft {
-  height: string;
-  weight: string;
-}
-
-const EMPTY_BODY_DRAFT: BodyDraft = { height: "", weight: "" };
-
-// 身高体重存进 sessionStorage，刷新页面不用重填；其他信息不落盘。
-function useStoredBodyDraft(key: string) {
-  const [value, setValue] = useState<BodyDraft>(() => readBodyDraft(key));
-  function update(next: BodyDraft) {
-    setValue(next);
-    writeBodyDraft(key, next);
-  }
-  return [value, update] as const;
-}
-
-function readBodyDraft(key: string): BodyDraft {
-  if (typeof sessionStorage === "undefined") return EMPTY_BODY_DRAFT;
-  try {
-    const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? "null");
-    if (typeof parsed === "object" && parsed !== null) {
-      const { height, weight } = parsed as Partial<BodyDraft>;
-      if (typeof height === "string" && typeof weight === "string") return { height, weight };
-    }
-  } catch {
-    // 存储内容损坏时按空值处理
-  }
-  return EMPTY_BODY_DRAFT;
-}
-
-function writeBodyDraft(key: string, value: BodyDraft) {
-  if (typeof sessionStorage === "undefined") return;
-  sessionStorage.setItem(key, JSON.stringify(value));
-}
-
-function BodySizeFields({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: BodyDraft;
-  onChange: (value: BodyDraft) => void;
-}) {
-  return (
-    <div className="grid grid-cols-[2.5rem_1fr_1fr] items-center gap-2">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <Input
-        aria-label={`${label}身高（厘米）`}
-        className="h-11"
-        inputMode="numeric"
-        max={250}
-        min={100}
-        onChange={(event) => {
-          onChange({ ...value, height: event.target.value });
-        }}
-        placeholder="身高 cm"
-        step={1}
-        type="number"
-        value={value.height}
-      />
-      <Input
-        aria-label={`${label}体重（公斤）`}
-        className="h-11"
-        inputMode="decimal"
-        max={200}
-        min={30}
-        onChange={(event) => {
-          onChange({ ...value, weight: event.target.value });
-        }}
-        placeholder="体重 kg"
-        step={0.1}
-        type="number"
-        value={value.weight}
-      />
-    </div>
-  );
-}
-
-function toBodySize({ height, weight }: BodyDraft) {
-  return { height: parseBodyValue(height), weight: parseBodyValue(weight) };
-}
-
-function parseBodyValue(value: string) {
-  if (value.trim() === "") return;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return "生成这张";
 }
 
 function CenteredMessage({ children }: { children: ReactNode }) {
