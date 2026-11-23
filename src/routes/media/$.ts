@@ -10,7 +10,7 @@ export const Route = createFileRoute("/media/$")({
   server: {
     handlers: {
       // 生成图统一从同源路径转流一次；Ark 没有 CORS 头，canvas 无法直接导出跨域图。
-      GET: async ({ request, params }) => {
+      GET: async ({ params }) => {
         const encoded = params._splat;
         if (!encoded) return new Response("Not Found", { status: 404 });
 
@@ -40,21 +40,13 @@ export const Route = createFileRoute("/media/$")({
           return new Response("Not Found", { status: 404 });
         }
 
-        // Ark 地址不会变，按代理路径生成 ETag；命中时不必回源下载整张图。
-        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(encoded));
-        const etag = `"${Buffer.from(digest).toString("base64url")}"`;
-        const cacheHeaders = { ETag: etag, "Cache-Control": CACHE_CONTROL };
-        if (request.headers.get("if-none-match") === etag) {
-          return new Response(undefined, { status: 304, headers: cacheHeaders });
-        }
-
         const upstream = await fetch(target);
         if (!upstream.ok || !upstream.body) {
           return new Response("Bad Gateway", { status: 502 });
         }
 
         return new Response(upstream.body, {
-          headers: { ...cacheHeaders, "Content-Type": "image/png" },
+          headers: { "Content-Type": "image/png", "Cache-Control": CACHE_CONTROL },
         });
       },
     },

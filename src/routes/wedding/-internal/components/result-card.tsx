@@ -30,6 +30,7 @@ import {
 } from "../services/poses.ts";
 import { editGeneratedImage, regenerateWedding, type PublicImage } from "../services/wedding.ts";
 import { fileToDataUrl } from "./photo-uploader.tsx";
+import { RetryImage } from "./retry-image.tsx";
 
 // 婚纱摄影棚常用的背景纸颜色：红色系 + 中性/流行色
 const BACKGROUNDS = [
@@ -117,6 +118,14 @@ export function ResultCard({
   const aspectRatio = image.ratio === "3:4" ? "3 / 4" : "2 / 3";
   const [isModifyOpen, setIsModifyOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
+  // 手动"重新获取"时换 key 重挂载，让 RetryImage 重新开始自动重试
+  const [imageAttempt, setImageAttempt] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageAttempt(0);
+    setImageFailed(false);
+  }, [image.url]);
 
   const editMutation = useMutation({
     mutationFn: (text: string) =>
@@ -159,13 +168,20 @@ export function ResultCard({
               />
             }
           >
-            <img
+            <RetryImage
               alt={`${seriesTitle}姿态 ${image.pose} 的婚纱照`}
               className="w-full object-contain"
               crossOrigin="anonymous"
               decoding="async"
+              key={imageAttempt}
               src={image.url}
               style={{ aspectRatio }}
+              onFinalError={() => {
+                setImageFailed(true);
+              }}
+              onLoad={() => {
+                setImageFailed(false);
+              }}
             />
             <span className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end px-3 pb-3 text-xs font-medium text-white">
               <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1.5 backdrop-blur-sm">
@@ -196,6 +212,21 @@ export function ResultCard({
           <Pencil aria-hidden className="size-3.5" />
           修改
         </button>
+        {imageFailed ? (
+          <button
+            aria-label="重新获取这张婚纱照"
+            className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/50"
+            onClick={() => {
+              setImageFailed(false);
+              setImageAttempt((count) => count + 1);
+            }}
+            type="button"
+          >
+            <span className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black">
+              重新获取
+            </span>
+          </button>
+        ) : undefined}
         {isModifying ? (
           <div
             aria-live="polite"
@@ -350,7 +381,7 @@ export function ResultCard({
                   style={CHECKERBOARD}
                   type="button"
                 >
-                  <img alt={`第 ${index + 1} 版`} className="w-full" src={version.url} />
+                  <RetryImage alt={`第 ${index + 1} 版`} className="w-full" src={version.url} />
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
                     {isCurrent ? "当前" : `第${index + 1}版`}
                   </span>
@@ -717,7 +748,7 @@ function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle: strin
               src={backgroundImage}
             />
           )}
-          <img
+          <RetryImage
             alt=""
             className="pointer-events-none absolute inset-0 size-full object-contain"
             crossOrigin="anonymous"
@@ -1017,12 +1048,19 @@ function regenerateHint(hasPhotos: boolean, remainingEdits: number) {
 }
 
 async function loadImage(source: string) {
-  const image = new Image();
-  // 贴纸从 CDN 取，导出 canvas 需要跨域许可；成图走同源 /media 代理
-  image.crossOrigin = "anonymous";
-  image.src = source;
-  await image.decode();
-  return image;
+  for (let attempt = 0; ; attempt += 1) {
+    const image = new Image();
+    // 贴纸从 CDN 取，导出 canvas 需要跨域许可；成图走同源 /media 代理
+    image.crossOrigin = "anonymous";
+    // 数据 URL 不能加 query；网络图片失败重试时换缓存键，绕过浏览器缓存的坏响应
+    image.src = attempt === 0 || source.startsWith("data:") ? source : `${source}?retry=${attempt}`;
+    try {
+      await image.decode();
+      return image;
+    } catch (error) {
+      if (attempt >= 2) throw error;
+    }
+  }
 }
 
 function clamp(value: number, min: number, max: number) {
