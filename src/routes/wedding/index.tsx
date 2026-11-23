@@ -49,7 +49,6 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
   const [photoA, setPhotoA] = useState("");
   const [photoB, setPhotoB] = useState("");
   const hasPhotos = photoA !== "" && photoB !== "";
-  const canGenerate = hasPhotos && remaining > 0;
 
   const generateMutation = useMutation({
     mutationFn: (choice: PoseChoice) =>
@@ -139,11 +138,13 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           ) : undefined}
           <div className={generateMutation.isPending ? "hidden" : undefined}>
             <PosePicker
-              actionDisabled={!canGenerate}
-              actionLabel={actionLabel(remaining, hasPhotos)}
+              actionDisabled={remaining === 0}
+              actionLabel={actionLabel(remaining)}
               onGenerate={(choice) => {
                 generateMutation.mutate(choice);
               }}
+              triggerDisabled={!hasPhotos}
+              triggerHint={hasPhotos ? "选系列和姿态，生成透明底婚纱照" : "请先上传两张人像照片"}
               triggerLabel={images.length === 0 ? "选一个姿态开始生成" : "再生成一张婚纱照"}
             />
             {generateMutation.error ? (
@@ -199,10 +200,8 @@ function GeneratingCard({ pose }: { pose: number }) {
   );
 }
 
-function actionLabel(remaining: number, hasPhotos: boolean) {
-  if (remaining === 0) return "照片额度已用完";
-  if (!hasPhotos) return "请先上传人像照片";
-  return "生成这张";
+function actionLabel(remaining: number) {
+  return remaining === 0 ? "照片额度已用完" : "生成这张";
 }
 
 function CenteredMessage({ children }: { children: ReactNode }) {

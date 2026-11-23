@@ -27,6 +27,8 @@ export interface PoseChoice {
 interface PosePickerProperties {
   actionDisabled: boolean;
   actionLabel: string;
+  triggerDisabled: boolean;
+  triggerHint: string;
   triggerLabel: string;
   onGenerate: (choice: PoseChoice) => void;
 }
@@ -37,6 +39,8 @@ const SERIES_ITEMS = POSE_SERIES.map((series) => ({ value: series.key, label: se
 export function PosePicker({
   actionDisabled,
   actionLabel,
+  triggerDisabled,
+  triggerHint,
   triggerLabel,
   onGenerate,
 }: PosePickerProperties) {
@@ -70,7 +74,8 @@ export function PosePicker({
         <DrawerTrigger
           render={
             <button
-              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex w-full items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition duration-150 active:scale-[0.99]"
+              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong disabled:hover:bg-background flex w-full items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition duration-150 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+              disabled={triggerDisabled}
               type="button"
             />
           }
@@ -81,7 +86,7 @@ export function PosePicker({
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{triggerLabel}</span>
             <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-5">
-              选系列和姿态，生成透明底婚纱照
+              {triggerHint}
             </span>
           </span>
           <ChevronRight className="text-muted-foreground size-4 shrink-0" />
