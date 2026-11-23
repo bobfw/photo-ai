@@ -3,7 +3,7 @@ import { buildWeddingPoseEditPrompt, buildWeddingPosePrompt } from "./prompts.ts
 
 /**
  * 按姿势线稿生成一张透明背景的婚纱照：图 1 新娘、图 2 新郎、图 3 姿势。
- * 返回图片 URL（24 小时内有效）。
+ * 返回 R2 key（24 小时后自动删除）。
  */
 export async function generateWeddingPose(
   faces: [string, string],
@@ -21,7 +21,7 @@ export async function generateWeddingPose(
 
 /**
  * 按提示词微调当前婚纱照，保持人物、姿势和透明背景。
- * 返回新图片 URL（24 小时内有效）。
+ * 返回新图片的 R2 key（24 小时后自动删除）。
  */
 export async function editWeddingPose(
   photo: string,

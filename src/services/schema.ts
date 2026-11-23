@@ -45,7 +45,7 @@ export const generatedImages = sqliteTable(
     voucherId: integer("voucher_id")
       .notNull()
       .references(() => vouchers.id),
-    // Ark 返回的图片 URL，过期时间由 Ark 控制
+    // R2 key（temp_24h/...），由桶的生命周期 24 小时后删除；老数据是 Ark URL
     imageUrl: text("image_url").notNull(),
     poseIndex: integer("pose_index").notNull(),
     // 旧系列 key 的默认值；插入时总是显式写 series

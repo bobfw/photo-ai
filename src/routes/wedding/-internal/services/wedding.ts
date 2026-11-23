@@ -1,10 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
+import { env } from "cloudflare:workers";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { editWeddingPose, generateWeddingPose } from "#agents/wedding";
 import { database } from "#services/database";
+import { isStoredImage } from "#services/images";
 import { generatedImages, generationRecords, vouchers } from "#services/schema";
 
 import { findImageRatio, findPoseSeries, POSE_COUNT, poseImageUrl } from "./poses.ts";
@@ -114,7 +116,7 @@ async function recordGeneration(
   });
 }
 
-// Ark 没有 CORS 头，canvas 不能直接导出跨域图，统一走 /media 同源代理
+// canvas 不能直接导出跨域图，统一走 /media 同源代理
 function imageProxyUrl(source: string) {
   return `/media/${btoa(source).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "")}`;
 }
@@ -123,7 +125,7 @@ function readVersions(value: string) {
   return JSON.parse(value) as ImageVersion[];
 }
 
-// 前端传同源代理 URL；换回 Ark URL，并确认它属于这张图。
+// 前端传同源代理 URL；换回 R2 key（老数据是 Ark URL），并确认它属于这张图。
 function resolveVersionUrl(row: typeof generatedImages.$inferSelect, publicUrl: string) {
   if (imageProxyUrl(row.imageUrl) === publicUrl) return row.imageUrl;
 
@@ -163,9 +165,14 @@ function toPublicImage(row: typeof generatedImages.$inferSelect, maxEdits: numbe
   };
 }
 
-// 当前图和姿态图都从外部 URL 取；服务端读取不受 CORS 限制。生成结果固定是 PNG。
-async function loadImageDataUrl(url: string) {
-  const response = await fetch(url);
+// 生成结果固定是 PNG：新图从 R2 读，老数据从 Ark URL 取；服务端读取不受 CORS 限制。
+async function loadImageDataUrl(source: string) {
+  if (isStoredImage(source)) {
+    const object = await env.BUCKET.get(source);
+    if (!object) throw new Error("当前图片已过期");
+    return `data:image/png;base64,${Buffer.from(await object.arrayBuffer()).toString("base64")}`;
+  }
+  const response = await fetch(source);
   if (!response.ok) throw new Error(`读取当前图片失败（${response.status}）`);
   return `data:image/png;base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
 }
