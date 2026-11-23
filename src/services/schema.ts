@@ -52,6 +52,8 @@ export const generatedImages = sqliteTable(
     series: text("series").notNull().default("han-shi"),
     ratio: text("ratio").notNull().default("2:3"),
     editCount: integer("edit_count").notNull().default(0),
+    // 修改请求开始时间；非空表示正在生成，防止同一张图被并发重复扣次数
+    editStartedAt: integer("edit_started_at"),
     // 历史版本（含当前），JSON 数组，按生成先后排列
     versions: text("versions").notNull().default("[]"),
     createdAt: integer("created_at").notNull(),

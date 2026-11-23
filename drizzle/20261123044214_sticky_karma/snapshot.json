@@ -1,0 +1,475 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "4016651d-a146-4992-adb0-b7732ff1f14e",
+  "prevIds": [
+    "a750ea48-cedf-47ca-a532-af18dcb672ed"
+  ],
+  "ddl": [
+    {
+      "name": "generated_images",
+      "entityType": "tables"
+    },
+    {
+      "name": "generation_records",
+      "entityType": "tables"
+    },
+    {
+      "name": "vouchers",
+      "entityType": "tables"
+    },
+    {
+      "table": "generated_images",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "voucher_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "image_url",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "pose_index",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "series",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'han-shi'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "ratio",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'2:3'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "edit_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "edit_started_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "versions",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "expires_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "voucher_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "kind",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "series",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "pose_index",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "ratio",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "ip",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "country",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "user_agent",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generation_records",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "code",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "type",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "total_images",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "generated_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "max_edits",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "5",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "platform",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "terms_accepted_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "terms_accepted_ip",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "terms_accepted_country",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "terms_accepted_user_agent",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "vouchers",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "generated_images",
+      "name": "idx_generated_images_voucher",
+      "columns": [
+        {
+          "value": "voucher_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "generated_images",
+      "name": "idx_generated_images_expires",
+      "columns": [
+        {
+          "value": "expires_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "generation_records",
+      "name": "idx_generation_records_voucher",
+      "columns": [
+        {
+          "value": "voucher_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "generation_records",
+      "name": "idx_generation_records_created",
+      "columns": [
+        {
+          "value": "created_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "generated_images",
+      "name": "fk_generated_images_voucher_id_vouchers_id_fk",
+      "columns": [
+        "voucher_id"
+      ],
+      "tableTo": "vouchers",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "generation_records",
+      "name": "fk_generation_records_voucher_id_vouchers_id_fk",
+      "columns": [
+        "voucher_id"
+      ],
+      "tableTo": "vouchers",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "generated_images",
+      "name": "generated_images_pk",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "generation_records",
+      "name": "generation_records_pk",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "vouchers",
+      "name": "vouchers_pk",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "vouchers",
+      "name": "vouchers_code_unique",
+      "columns": [
+        "code"
+      ],
+      "nameExplicit": false,
+      "entityType": "uniques"
+    }
+  ],
+  "renames": []
+}

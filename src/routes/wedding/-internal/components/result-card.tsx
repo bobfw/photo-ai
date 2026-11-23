@@ -214,9 +214,11 @@ export function ResultCard({
       </div>
 
       <Dialog
+        disablePointerDismissal={isModifying}
         onOpenChange={(open) => {
           setIsModifyOpen(open);
-          if (open) {
+          // 请求还在跑时保留状态，否则关掉弹窗后按钮会重新可点，重复扣次数
+          if (open || isModifying) {
             return;
           }
 

@@ -11,6 +11,8 @@ import { findImageRatio, findPoseSeries, POSE_COUNT, poseImageUrl } from "./pose
 
 const VOUCHER_TYPE = "wedding";
 const IMAGE_TTL_MS = 24 * 60 * 60 * 1000;
+// Ark 一次修改最长约 2 分钟；锁超过 3 分钟视为请求已中断，允许重试。
+const EDIT_LOCK_MS = 3 * 60 * 1000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 // 分辨率档位写死在后台，前端只选姿态；生成统一 2:3，3:4 只在换背景导出时选择
@@ -297,14 +299,20 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
     const ratio = findImageRatio(row.ratio);
     if (!ratio) throw new Error("比例不存在");
 
-    // 先原子占用一次修改次数，失败再退还。
+    // 先原子占用一次修改次数，失败再退还；生成中的同一张图拒绝重复提交。
+    const now = Date.now();
     const reserved = await database.run(sql`
       UPDATE generated_images
-      SET edit_count = edit_count + 1
-      WHERE id = ${row.id} AND edit_count < ${voucher.maxEdits}
+      SET edit_count = edit_count + 1, edit_started_at = ${now}
+      WHERE id = ${row.id}
+        AND edit_count < ${voucher.maxEdits}
+        AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
     `);
     if (reserved.meta.changes === 0) {
-      throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+      if (row.editCount >= voucher.maxEdits) {
+        throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+      }
+      throw new Error("这张照片正在修改中，请稍后再试");
     }
 
     try {
@@ -321,7 +329,12 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
       const versions = appendVersion(row, { url: remoteUrl, createdAt });
       await database
         .update(generatedImages)
-        .set({ imageUrl: remoteUrl, expiresAt, versions: JSON.stringify(versions) })
+        .set({
+          imageUrl: remoteUrl,
+          expiresAt,
+          versions: JSON.stringify(versions),
+          editStartedAt: sql`NULL`,
+        })
         .where(eq(generatedImages.id, row.id));
 
       return toPublicImage(
@@ -337,7 +350,7 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
     } catch (error) {
       await database.run(sql`
         UPDATE generated_images
-        SET edit_count = edit_count - 1
+        SET edit_count = edit_count - 1, edit_started_at = NULL
         WHERE id = ${row.id} AND edit_count > 0
       `);
       throw error;
@@ -357,13 +370,19 @@ export const regenerateWedding = createServerFn({ method: "POST" })
     if (!ratio) throw new Error("比例不存在");
 
     // 重新生成和提示词修改共用每张图的修改次数，先原子占用，失败再退还。
+    const now = Date.now();
     const reserved = await database.run(sql`
       UPDATE generated_images
-      SET edit_count = edit_count + 1
-      WHERE id = ${row.id} AND edit_count < ${voucher.maxEdits}
+      SET edit_count = edit_count + 1, edit_started_at = ${now}
+      WHERE id = ${row.id}
+        AND edit_count < ${voucher.maxEdits}
+        AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
     `);
     if (reserved.meta.changes === 0) {
-      throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+      if (row.editCount >= voucher.maxEdits) {
+        throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+      }
+      throw new Error("这张照片正在修改中，请稍后再试");
     }
 
     try {
@@ -384,7 +403,12 @@ export const regenerateWedding = createServerFn({ method: "POST" })
       const versions = appendVersion(row, { url: remoteUrl, createdAt });
       await database
         .update(generatedImages)
-        .set({ imageUrl: remoteUrl, expiresAt, versions: JSON.stringify(versions) })
+        .set({
+          imageUrl: remoteUrl,
+          expiresAt,
+          versions: JSON.stringify(versions),
+          editStartedAt: sql`NULL`,
+        })
         .where(eq(generatedImages.id, row.id));
 
       return toPublicImage(
@@ -400,7 +424,7 @@ export const regenerateWedding = createServerFn({ method: "POST" })
     } catch (error) {
       await database.run(sql`
         UPDATE generated_images
-        SET edit_count = edit_count - 1
+        SET edit_count = edit_count - 1, edit_started_at = NULL
         WHERE id = ${row.id} AND edit_count > 0
       `);
       throw error;
