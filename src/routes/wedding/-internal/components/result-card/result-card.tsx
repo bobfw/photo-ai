@@ -10,7 +10,7 @@ import { Drawer, DrawerContent, DrawerTrigger } from "#ui/drawer";
 import { findPoseSeries } from "../../services/poses.ts";
 import { editGeneratedImage, regenerateWedding, type PublicImage } from "../../services/wedding.ts";
 import { RetryImage } from "../retry-image.tsx";
-import { CHECKERBOARD } from "./constants.ts";
+import { CHECKERBOARD, proxyImageUrl } from "./constants.ts";
 import { Editor } from "./editor.tsx";
 
 export function ResultCard({
@@ -28,6 +28,7 @@ export function ResultCard({
 }) {
   const seriesTitle = findPoseSeries(image.series)?.title ?? image.series;
   const aspectRatio = image.ratio === "3:4" ? "3 / 4" : "2 / 3";
+  const imageSource = image.sourceUrl ? proxyImageUrl(image.sourceUrl) : image.url;
   const [isModifyOpen, setIsModifyOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
   // 手动"重新获取"时换 key 重挂载，让 RetryImage 重新开始自动重试
@@ -37,7 +38,7 @@ export function ResultCard({
   useEffect(() => {
     setImageAttempt(0);
     setImageFailed(false);
-  }, [image.url]);
+  }, [imageSource]);
 
   const editMutation = useMutation({
     mutationFn: (text: string) =>
@@ -83,10 +84,9 @@ export function ResultCard({
             <RetryImage
               alt={`${seriesTitle}姿态 ${image.pose} 的婚纱照`}
               className="w-full object-contain"
-              crossOrigin="anonymous"
               decoding="async"
               key={imageAttempt}
-              src={image.url}
+              src={imageSource}
               style={{ aspectRatio }}
               onFinalError={() => {
                 setImageFailed(true);
@@ -288,12 +288,20 @@ export function ResultCard({
                   )}
                   key={version.url}
                   onClick={() => {
-                    onImageChange({ ...image, url: version.url });
+                    onImageChange({
+                      ...image,
+                      url: version.url,
+                      sourceUrl: version.sourceUrl,
+                    });
                   }}
                   style={CHECKERBOARD}
                   type="button"
                 >
-                  <RetryImage alt={`第 ${index + 1} 版`} className="w-full" src={version.url} />
+                  <RetryImage
+                    alt={`第 ${index + 1} 版`}
+                    className="w-full"
+                    src={version.sourceUrl ? proxyImageUrl(version.sourceUrl) : version.url}
+                  />
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
                     {isCurrent ? "当前" : `第${index + 1}版`}
                   </span>

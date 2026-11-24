@@ -7,8 +7,14 @@ export function isStoredImage(source: string) {
   return source.startsWith(STORED_IMAGE_PREFIX);
 }
 
-// 流式转存，不把整张图读进内存；返回 R2 key。
-export async function storeImage(sourceUrl: string): Promise<string> {
+export interface StoredImage {
+  key: string;
+  // Ark 原始地址，24 小时后失效；和 R2 key 一起入库便于追溯
+  sourceUrl: string;
+}
+
+// 流式转存，不把整张图读进内存；返回 R2 key 和原始地址。
+export async function storeImage(sourceUrl: string): Promise<StoredImage> {
   const response = await fetch(sourceUrl);
   if (!response.ok || !response.body) {
     throw new Error(`转存生成图片失败（${response.status}）`);
@@ -17,5 +23,5 @@ export async function storeImage(sourceUrl: string): Promise<string> {
   await env.BUCKET.put(key, response.body, {
     httpMetadata: { contentType: "image/png" },
   });
-  return key;
+  return { key, sourceUrl };
 }
