@@ -8,7 +8,7 @@ import { toast } from "#ui/toast";
 
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
 import { PosePicker, type PoseChoice } from "./-internal/components/pose-picker.tsx";
-import { ResultCard } from "./-internal/components/result-card.tsx";
+import { ResultCard } from "./-internal/components/result-card/index.tsx";
 import { generatePoseImage, getVoucherState } from "./-internal/services/wedding.ts";
 
 /* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
