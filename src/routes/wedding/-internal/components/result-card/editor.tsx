@@ -24,6 +24,7 @@ import {
 } from "./constants.ts";
 import { EditorStage } from "./editor-stage.tsx";
 import type { Sticker } from "./types.ts";
+import { usePersonFootprint } from "./use-person-footprint.ts";
 import { usePhotoGesture } from "./use-photo-gesture.ts";
 
 export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle: string }) {
@@ -32,6 +33,9 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
   const [background, setBackground] = useState("transparent");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [lightIntensity, setLightIntensity] = useState(0.7);
+  const [grainIntensity, setGrainIntensity] = useState(0.35);
+  const [shadowIntensity, setShadowIntensity] = useState(0.35);
+  const [textureIntensity, setTextureIntensity] = useState(0);
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [selectedStickerId, setSelectedStickerId] = useState<number>();
   const [outputRatio, setOutputRatio] = useState<ImageRatio>(image.ratio === "3:4" ? "3:4" : "2:3");
@@ -50,8 +54,14 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState("");
   const selectedSticker = stickers.find((sticker) => sticker.id === selectedStickerId);
-  const isStudioLightDisabled = backgroundImage !== "" || background === "transparent";
-  const isStudioLightVisible = !isStudioLightDisabled && lightIntensity > 0;
+  const isSolidBackground = backgroundImage === "" && background !== "transparent";
+  const hasBackground = isSolidBackground || backgroundImage !== "";
+  const isColorEffectDisabled = !isSolidBackground;
+  const isShadowDisabled = !hasBackground;
+  const isStudioBackdropVisible =
+    isSolidBackground && (lightIntensity > 0 || grainIntensity > 0 || textureIntensity > 0);
+  const footprint = usePersonFootprint(hasBackground ? image.url : undefined);
+  const isContactShadowVisible = hasBackground && shadowIntensity > 0 && footprint !== undefined;
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -140,11 +150,14 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
       imageUrl: image.url,
       background,
       backgroundImage,
+      grainIntensity,
       lightIntensity,
+      shadowIntensity,
       stageRatio,
       photoScale,
       photoOffset,
       stickers,
+      textureIntensity,
     });
   }
 
@@ -224,8 +237,11 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
         <EditorStage
           background={background}
           backgroundImage={backgroundImage}
+          footprint={footprint}
+          grainIntensity={grainIntensity}
           imageUrl={image.url}
-          isStudioLightVisible={isStudioLightVisible}
+          isContactShadowVisible={isContactShadowVisible}
+          isStudioBackdropVisible={isStudioBackdropVisible}
           lightIntensity={lightIntensity}
           onPhotoPointerDown={handleStagePointerDown}
           onPhotoPointerMove={handlePhotoPointerMove}
@@ -234,9 +250,11 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
           photoOffset={photoOffset}
           photoScale={photoScale}
           selectedStickerId={selectedStickerId}
+          shadowIntensity={shadowIntensity}
           stageRatio={stageRatio}
           stageReference={stageReference}
           stickers={stickers}
+          textureIntensity={textureIntensity}
         />
 
         <div className="flex items-center gap-2">
@@ -331,15 +349,24 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
           <BackgroundControls
             background={background}
             backgroundImage={backgroundImage}
-            isLightDisabled={isStudioLightDisabled}
+            grainIntensity={grainIntensity}
+            isGrainDisabled={isColorEffectDisabled}
+            isLightDisabled={isColorEffectDisabled}
+            isShadowDisabled={isShadowDisabled}
+            isTextureDisabled={isColorEffectDisabled}
             lightIntensity={lightIntensity}
             onColorChange={handleColorChange}
             onError={setError}
+            onGrainIntensityChange={setGrainIntensity}
             onImageChange={setBackgroundImage}
             onImageRemove={() => {
               setBackgroundImage("");
             }}
             onLightIntensityChange={setLightIntensity}
+            onShadowIntensityChange={setShadowIntensity}
+            onTextureIntensityChange={setTextureIntensity}
+            shadowIntensity={shadowIntensity}
+            textureIntensity={textureIntensity}
           />
         </section>
 

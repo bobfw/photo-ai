@@ -9,25 +9,43 @@ import { BACKGROUNDS, CHECKERBOARD } from "./constants.ts";
 interface BackgroundControlsProperties {
   background: string;
   backgroundImage: string;
+  grainIntensity: number;
+  isGrainDisabled: boolean;
   isLightDisabled: boolean;
+  isShadowDisabled: boolean;
+  isTextureDisabled: boolean;
   lightIntensity: number;
   onColorChange: (color: string) => void;
   onError: (message: string) => void;
+  onGrainIntensityChange: (intensity: number) => void;
   onImageChange: (image: string) => void;
   onImageRemove: () => void;
   onLightIntensityChange: (intensity: number) => void;
+  onShadowIntensityChange: (intensity: number) => void;
+  onTextureIntensityChange: (intensity: number) => void;
+  shadowIntensity: number;
+  textureIntensity: number;
 }
 
 export function BackgroundControls({
   background,
   backgroundImage,
+  grainIntensity,
+  isGrainDisabled,
   isLightDisabled,
+  isShadowDisabled,
+  isTextureDisabled,
   lightIntensity,
   onColorChange,
   onError,
+  onGrainIntensityChange,
   onImageChange,
   onImageRemove,
   onLightIntensityChange,
+  onShadowIntensityChange,
+  onTextureIntensityChange,
+  shadowIntensity,
+  textureIntensity,
 }: BackgroundControlsProperties) {
   const backgroundInput = useRef<HTMLInputElement>(null);
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
@@ -65,8 +83,62 @@ export function BackgroundControls({
           value={Math.round(lightIntensity * 100)}
         />
       </div>
+      <div className={cn("flex items-center gap-2", isGrainDisabled && "opacity-50")}>
+        <span className="text-muted-foreground w-16 shrink-0 text-xs tabular-nums">
+          颗粒 {Math.round(grainIntensity * 100)}%
+        </span>
+        <input
+          aria-label="背景颗粒强度"
+          className="accent-primary h-11 min-w-0 flex-1"
+          disabled={isGrainDisabled}
+          max={100}
+          min={0}
+          onChange={(event) => {
+            onGrainIntensityChange(Number(event.target.value) / 100);
+          }}
+          step={1}
+          type="range"
+          value={Math.round(grainIntensity * 100)}
+        />
+      </div>
+      <div className={cn("flex items-center gap-2", isTextureDisabled && "opacity-50")}>
+        <span className="text-muted-foreground w-16 shrink-0 text-xs tabular-nums">
+          纹理 {Math.round(textureIntensity * 100)}%
+        </span>
+        <input
+          aria-label="背景纹理强度"
+          className="accent-primary h-11 min-w-0 flex-1"
+          disabled={isTextureDisabled}
+          max={100}
+          min={0}
+          onChange={(event) => {
+            onTextureIntensityChange(Number(event.target.value) / 100);
+          }}
+          step={1}
+          type="range"
+          value={Math.round(textureIntensity * 100)}
+        />
+      </div>
+      <div className={cn("flex items-center gap-2", isShadowDisabled && "opacity-50")}>
+        <span className="text-muted-foreground w-16 shrink-0 text-xs tabular-nums">
+          投影 {Math.round(shadowIntensity * 100)}%
+        </span>
+        <input
+          aria-label="人物投影强度"
+          className="accent-primary h-11 min-w-0 flex-1"
+          disabled={isShadowDisabled}
+          max={100}
+          min={0}
+          onChange={(event) => {
+            onShadowIntensityChange(Number(event.target.value) / 100);
+          }}
+          step={1}
+          type="range"
+          value={Math.round(shadowIntensity * 100)}
+        />
+      </div>
       <p className="text-muted-foreground text-[11px] leading-4">
-        仅作用于纯色背景；0 关闭，不影响人物。
+        颗粒/纹理仅纯色背景，0 关闭；投影让脚下更落地。
       </p>
 
       <div className="flex flex-wrap gap-1">

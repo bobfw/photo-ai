@@ -4,14 +4,19 @@ import { cn } from "#lib/utils";
 
 import { RetryImage } from "../retry-image.tsx";
 import { CHECKERBOARD, STUDIO_LIGHT_PREVIEW_WIDTH } from "./constants.ts";
+import { paintContactShadow, type PersonFootprint } from "./contact-shadow.ts";
+import { paintPaperGrain, paintPaperTexture } from "./paper-texture.ts";
 import { paintStudioLight } from "./studio-light.ts";
 import type { PhotoOffset, Sticker } from "./types.ts";
 
 interface EditorStageProperties {
   background: string;
   backgroundImage: string;
+  footprint: PersonFootprint | undefined;
+  grainIntensity: number;
   imageUrl: string;
-  isStudioLightVisible: boolean;
+  isContactShadowVisible: boolean;
+  isStudioBackdropVisible: boolean;
   lightIntensity: number;
   onPhotoPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
   onPhotoPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
@@ -20,16 +25,21 @@ interface EditorStageProperties {
   photoOffset: PhotoOffset;
   photoScale: number;
   selectedStickerId: number | undefined;
+  shadowIntensity: number;
   stageRatio: number;
   stageReference: RefObject<HTMLDivElement | null>;
   stickers: Sticker[];
+  textureIntensity: number;
 }
 
 export function EditorStage({
   background,
   backgroundImage,
+  footprint,
+  grainIntensity,
   imageUrl,
-  isStudioLightVisible,
+  isContactShadowVisible,
+  isStudioBackdropVisible,
   lightIntensity,
   onPhotoPointerDown,
   onPhotoPointerMove,
@@ -38,15 +48,18 @@ export function EditorStage({
   photoOffset,
   photoScale,
   selectedStickerId,
+  shadowIntensity,
   stageRatio,
   stageReference,
   stickers,
+  textureIntensity,
 }: EditorStageProperties) {
-  const lightCanvasReference = useRef<HTMLCanvasElement>(null);
+  const backdropCanvasReference = useRef<HTMLCanvasElement>(null);
+  const shadowCanvasReference = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = lightCanvasReference.current;
-    if (!canvas || !isStudioLightVisible) return;
+    const canvas = backdropCanvasReference.current;
+    if (!canvas || !isStudioBackdropVisible) return;
 
     const context = canvas.getContext("2d");
     if (!context) return;
@@ -54,7 +67,35 @@ export function EditorStage({
     canvas.width = STUDIO_LIGHT_PREVIEW_WIDTH;
     canvas.height = Math.round(STUDIO_LIGHT_PREVIEW_WIDTH / stageRatio);
     paintStudioLight(context, canvas.width, canvas.height, background, lightIntensity);
-  }, [background, isStudioLightVisible, lightIntensity, stageRatio]);
+    paintPaperTexture(context, canvas.width, canvas.height, textureIntensity);
+    paintPaperGrain(context, canvas.width, canvas.height, grainIntensity);
+  }, [
+    background,
+    grainIntensity,
+    isStudioBackdropVisible,
+    lightIntensity,
+    stageRatio,
+    textureIntensity,
+  ]);
+
+  useEffect(() => {
+    const canvas = shadowCanvasReference.current;
+    if (!canvas || !isContactShadowVisible || !footprint) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const width = STUDIO_LIGHT_PREVIEW_WIDTH;
+    const height = Math.round(width / stageRatio);
+    if (canvas.width !== width || canvas.height !== height) {
+      // 改尺寸会清空 canvas；拖动照片时尺寸不变，只清屏，避免每帧重建缓冲区。
+      canvas.width = width;
+      canvas.height = height;
+    } else {
+      context.clearRect(0, 0, width, height);
+    }
+    paintContactShadow(context, width, height, footprint, photoScale, photoOffset, shadowIntensity);
+  }, [footprint, isContactShadowVisible, photoOffset, photoScale, shadowIntensity, stageRatio]);
 
   let backgroundLayer: ReactNode;
   if (backgroundImage !== "") {
@@ -69,13 +110,13 @@ export function EditorStage({
     backgroundLayer = (
       <div aria-hidden className="pointer-events-none absolute inset-0" style={CHECKERBOARD} />
     );
-  } else if (isStudioLightVisible) {
+  } else if (isStudioBackdropVisible) {
     backgroundLayer = (
       <canvas
         aria-hidden
         className="pointer-events-none absolute inset-0 size-full"
         height={Math.round(STUDIO_LIGHT_PREVIEW_WIDTH / stageRatio)}
-        ref={lightCanvasReference}
+        ref={backdropCanvasReference}
         width={STUDIO_LIGHT_PREVIEW_WIDTH}
       />
     );
@@ -98,6 +139,15 @@ export function EditorStage({
       }}
     >
       {backgroundLayer}
+      {isContactShadowVisible ? (
+        <canvas
+          aria-hidden
+          className="pointer-events-none absolute inset-0 size-full"
+          height={Math.round(STUDIO_LIGHT_PREVIEW_WIDTH / stageRatio)}
+          ref={shadowCanvasReference}
+          width={STUDIO_LIGHT_PREVIEW_WIDTH}
+        />
+      ) : undefined}
       <RetryImage
         alt=""
         className="pointer-events-none absolute inset-0 size-full object-contain"

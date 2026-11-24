@@ -1,3 +1,6 @@
+import { measurePersonFootprint, paintContactShadow } from "./contact-shadow.ts";
+import { loadImage } from "./load-image.ts";
+import { paintPaperGrain, paintPaperTexture } from "./paper-texture.ts";
 import { paintStudioLight } from "./studio-light.ts";
 import type { PhotoOffset, Sticker } from "./types.ts";
 
@@ -5,23 +8,29 @@ interface ComposeImageOptions {
   imageUrl: string;
   background: string;
   backgroundImage: string;
+  grainIntensity: number;
   lightIntensity: number;
+  shadowIntensity: number;
   stageRatio: number;
   photoScale: number;
   photoOffset: PhotoOffset;
   stickers: Sticker[];
+  textureIntensity: number;
 }
 
-// 背景色、光影、背景图和贴纸都只在前端合成，预览和导出的就是最终 PNG。
+// 背景色、光影、纸质感、背景图、投影和贴纸都只在前端合成，预览和导出的就是最终 PNG。
 export async function composeImage({
   imageUrl,
   background,
   backgroundImage,
+  grainIntensity,
   lightIntensity,
+  shadowIntensity,
   stageRatio,
   photoScale,
   photoOffset,
   stickers,
+  textureIntensity,
 }: ComposeImageOptions) {
   const source = await loadImage(imageUrl);
   const backgroundSource = backgroundImage === "" ? undefined : await loadImage(backgroundImage);
@@ -49,6 +58,24 @@ export async function composeImage({
     );
   } else if (background !== "transparent") {
     paintStudioLight(context, canvas.width, canvas.height, background, lightIntensity);
+    paintPaperTexture(context, canvas.width, canvas.height, textureIntensity);
+    paintPaperGrain(context, canvas.width, canvas.height, grainIntensity);
+  }
+
+  const hasBackground = backgroundSource !== undefined || background !== "transparent";
+  if (hasBackground && shadowIntensity > 0) {
+    const footprint = measurePersonFootprint(source);
+    if (footprint) {
+      paintContactShadow(
+        context,
+        canvas.width,
+        canvas.height,
+        footprint,
+        photoScale,
+        photoOffset,
+        shadowIntensity,
+      );
+    }
   }
 
   // 和预览的 object-contain 一致：先等比放进画布，再叠加缩放和位移
@@ -85,20 +112,4 @@ export async function composeImage({
   });
   if (!blob) throw new Error("无法导出图片");
   return blob;
-}
-
-async function loadImage(source: string) {
-  for (let attempt = 0; ; attempt += 1) {
-    const image = new Image();
-    // 贴纸从 CDN 取，导出 canvas 需要跨域许可；成图走同源 /media 代理
-    image.crossOrigin = "anonymous";
-    // 数据 URL 不能加 query；网络图片失败重试时换缓存键，绕过浏览器缓存的坏响应
-    image.src = attempt === 0 || source.startsWith("data:") ? source : `${source}?retry=${attempt}`;
-    try {
-      await image.decode();
-      return image;
-    } catch (error) {
-      if (attempt >= 2) throw error;
-    }
-  }
 }
