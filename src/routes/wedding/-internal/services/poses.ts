@@ -13,7 +13,7 @@ export const POSE_SERIES = [
   {
     key: "xi-jia-feng",
     title: "现代喜嫁风",
-    outfit: "新娘穿层叠荷叶边大裙摆婚纱、蝴蝶结发饰，新郎穿浅色西装、系领带。",
+    outfit: "新娘穿层红色叠荷叶边大裙摆婚纱、蝴蝶结发饰，新郎穿浅色西装、系领带。",
   },
   {
     key: "qi-pao",
