@@ -8,6 +8,7 @@ interface ComposeImageOptions {
   imageUrl: string;
   background: string;
   backgroundImage: string;
+  dofIntensity: number;
   grainIntensity: number;
   lightIntensity: number;
   shadowIntensity: number;
@@ -18,11 +19,12 @@ interface ComposeImageOptions {
   textureIntensity: number;
 }
 
-// 背景色、光影、纸质感、背景图、投影和贴纸都只在前端合成，预览和导出的就是最终 PNG。
+// 背景色、光影、纸质感、背景图（含景深）、投影和贴纸都只在前端合成，预览和导出的就是最终 PNG。
 export async function composeImage({
   imageUrl,
   background,
   backgroundImage,
+  dofIntensity,
   grainIntensity,
   lightIntensity,
   shadowIntensity,
@@ -42,13 +44,19 @@ export async function composeImage({
   if (!context) throw new Error("无法导出图片");
 
   if (backgroundSource) {
-    // 和预览的 object-cover 一致：等比放大后居中裁切填满
-    const scale = Math.max(
-      canvas.width / backgroundSource.naturalWidth,
-      canvas.height / backgroundSource.naturalHeight,
-    );
+    // 和预览的 object-cover 一致：等比放大后居中裁切填满。
+    // 有景深时额外放大一点，避免 blur 把边缘糊出透明/黑边。
+    const blurPx = canvas.width * 0.025 * dofIntensity;
+    const scale =
+      Math.max(
+        canvas.width / backgroundSource.naturalWidth,
+        canvas.height / backgroundSource.naturalHeight,
+      ) *
+      (1 + 0.06 * dofIntensity);
     const width = backgroundSource.naturalWidth * scale;
     const height = backgroundSource.naturalHeight * scale;
+    context.save();
+    if (blurPx > 0) context.filter = `blur(${blurPx}px)`;
     context.drawImage(
       backgroundSource,
       (canvas.width - width) / 2,
@@ -56,6 +64,7 @@ export async function composeImage({
       width,
       height,
     );
+    context.restore();
   } else if (background !== "transparent") {
     paintStudioLight(context, canvas.width, canvas.height, background, lightIntensity);
     paintPaperTexture(context, canvas.width, canvas.height, textureIntensity);

@@ -9,13 +9,16 @@ import { BACKGROUNDS, CHECKERBOARD } from "./constants.ts";
 interface BackgroundControlsProperties {
   background: string;
   backgroundImage: string;
+  dofIntensity: number;
   grainIntensity: number;
+  isDofDisabled: boolean;
   isGrainDisabled: boolean;
   isLightDisabled: boolean;
   isShadowDisabled: boolean;
   isTextureDisabled: boolean;
   lightIntensity: number;
   onColorChange: (color: string) => void;
+  onDofIntensityChange: (intensity: number) => void;
   onError: (message: string) => void;
   onGrainIntensityChange: (intensity: number) => void;
   onImageChange: (image: string) => void;
@@ -30,13 +33,16 @@ interface BackgroundControlsProperties {
 export function BackgroundControls({
   background,
   backgroundImage,
+  dofIntensity,
   grainIntensity,
+  isDofDisabled,
   isGrainDisabled,
   isLightDisabled,
   isShadowDisabled,
   isTextureDisabled,
   lightIntensity,
   onColorChange,
+  onDofIntensityChange,
   onError,
   onGrainIntensityChange,
   onImageChange,
@@ -227,6 +233,26 @@ export function BackgroundControls({
           </button>
         )}
       </div>
+
+      <div className={cn("flex items-center gap-2", isDofDisabled && "opacity-50")}>
+        <span className="text-muted-foreground w-16 shrink-0 text-xs tabular-nums">
+          景深 {Math.round(dofIntensity * 100)}%
+        </span>
+        <input
+          aria-label="背景景深强度"
+          className="accent-primary h-11 min-w-0 flex-1"
+          disabled={isDofDisabled}
+          max={100}
+          min={0}
+          onChange={(event) => {
+            onDofIntensityChange(Number(event.target.value) / 100);
+          }}
+          step={1}
+          type="range"
+          value={Math.round(dofIntensity * 100)}
+        />
+      </div>
+      <p className="text-muted-foreground text-[11px] leading-4">仅背景图，0 关闭。</p>
     </div>
   );
 }

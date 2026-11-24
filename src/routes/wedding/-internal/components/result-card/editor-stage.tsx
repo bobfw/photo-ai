@@ -12,6 +12,7 @@ import type { PhotoOffset, Sticker } from "./types.ts";
 interface EditorStageProperties {
   background: string;
   backgroundImage: string;
+  dofIntensity: number;
   footprint: PersonFootprint | undefined;
   grainIntensity: number;
   imageUrl: string;
@@ -35,6 +36,7 @@ interface EditorStageProperties {
 export function EditorStage({
   background,
   backgroundImage,
+  dofIntensity,
   footprint,
   grainIntensity,
   imageUrl,
@@ -104,6 +106,14 @@ export function EditorStage({
         alt=""
         className="pointer-events-none absolute inset-0 size-full object-cover"
         src={backgroundImage}
+        style={
+          dofIntensity > 0
+            ? {
+                filter: `blur(${dofIntensity * 2.5}cqw)`,
+                transform: `scale(${1 + dofIntensity * 0.06})`,
+              }
+            : undefined
+        }
       />
     );
   } else if (background === "transparent") {

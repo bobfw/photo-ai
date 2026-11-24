@@ -32,6 +32,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
   const nextStickerId = useRef(1);
   const [background, setBackground] = useState("transparent");
   const [backgroundImage, setBackgroundImage] = useState("");
+  const [dofIntensity, setDofIntensity] = useState(0.35);
   const [lightIntensity, setLightIntensity] = useState(0.7);
   const [grainIntensity, setGrainIntensity] = useState(0.35);
   const [shadowIntensity, setShadowIntensity] = useState(0.35);
@@ -57,6 +58,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
   const isSolidBackground = backgroundImage === "" && background !== "transparent";
   const hasBackground = isSolidBackground || backgroundImage !== "";
   const isColorEffectDisabled = !isSolidBackground;
+  const isDofDisabled = backgroundImage === "";
   const isShadowDisabled = !hasBackground;
   const isStudioBackdropVisible =
     isSolidBackground && (lightIntensity > 0 || grainIntensity > 0 || textureIntensity > 0);
@@ -150,6 +152,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
       imageUrl: image.url,
       background,
       backgroundImage,
+      dofIntensity,
       grainIntensity,
       lightIntensity,
       shadowIntensity,
@@ -237,6 +240,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
         <EditorStage
           background={background}
           backgroundImage={backgroundImage}
+          dofIntensity={dofIntensity}
           footprint={footprint}
           grainIntensity={grainIntensity}
           imageUrl={image.url}
@@ -349,13 +353,16 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
           <BackgroundControls
             background={background}
             backgroundImage={backgroundImage}
+            dofIntensity={dofIntensity}
             grainIntensity={grainIntensity}
+            isDofDisabled={isDofDisabled}
             isGrainDisabled={isColorEffectDisabled}
             isLightDisabled={isColorEffectDisabled}
             isShadowDisabled={isShadowDisabled}
             isTextureDisabled={isColorEffectDisabled}
             lightIntensity={lightIntensity}
             onColorChange={handleColorChange}
+            onDofIntensityChange={setDofIntensity}
             onError={setError}
             onGrainIntensityChange={setGrainIntensity}
             onImageChange={setBackgroundImage}
