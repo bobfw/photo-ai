@@ -17,6 +17,7 @@ import { composeImage } from "./compose-image.ts";
 import {
   PHOTO_MAX_SCALE,
   PHOTO_MIN_SCALE,
+  proxyImageUrl,
   STICKER_MAX_SIZE,
   STICKER_MIN_SIZE,
   STICKERS,
@@ -30,6 +31,8 @@ import { usePhotoGesture } from "./use-photo-gesture.ts";
 export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle: string }) {
   const stageReference = useRef<HTMLDivElement>(null);
   const nextStickerId = useRef(1);
+  // 展示和 canvas 都走 CORS 代理；老数据没有原图时回退到 /media 的 R2 代理
+  const imageSource = image.sourceUrl ? proxyImageUrl(image.sourceUrl) : image.url;
   const [background, setBackground] = useState("transparent");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [dofIntensity, setDofIntensity] = useState(0.35);
@@ -50,7 +53,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
     handlePhotoPointerDown,
     handlePhotoPointerMove,
     handlePhotoPointerUp,
-  } = usePhotoGesture(image.url, stageReference);
+  } = usePhotoGesture(imageSource, stageReference);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +65,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
   const isShadowDisabled = !hasBackground;
   const isStudioBackdropVisible =
     isSolidBackground && (lightIntensity > 0 || grainIntensity > 0 || textureIntensity > 0);
-  const footprint = usePersonFootprint(hasBackground ? image.url : undefined);
+  const footprint = usePersonFootprint(hasBackground ? imageSource : undefined);
   const isContactShadowVisible = hasBackground && shadowIntensity > 0 && footprint !== undefined;
 
   useEffect(() => {
@@ -149,7 +152,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
 
   function renderComposedImage() {
     return composeImage({
-      imageUrl: image.url,
+      imageUrl: imageSource,
       background,
       backgroundImage,
       dofIntensity,
@@ -243,7 +246,7 @@ export function Editor({ image, seriesTitle }: { image: PublicImage; seriesTitle
           dofIntensity={dofIntensity}
           footprint={footprint}
           grainIntensity={grainIntensity}
-          imageUrl={image.url}
+          imageUrl={imageSource}
           isContactShadowVisible={isContactShadowVisible}
           isStudioBackdropVisible={isStudioBackdropVisible}
           lightIntensity={lightIntensity}

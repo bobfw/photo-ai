@@ -1,7 +1,5 @@
 import { env } from "cloudflare:workers";
 
-import { storeImage } from "#services/images";
-
 const ARK_IMAGE_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations";
 const ARK_IMAGE_MODEL = "doubao-seedream-5-5-261028";
 // const ARK_IMAGE_MODEL = "doubao-seedream-5-0-pro-260628";
@@ -17,7 +15,7 @@ interface ArkImageResponse {
 }
 
 /**
- * 生成透明背景 PNG，转存到 R2 的 temp_24h/ 后返回 R2 key（24 小时后自动删除）。
+ * 生成透明背景 PNG，返回 Ark 原始地址（24 小时后失效）。
  * 不依赖 sharp / fs 的静态导入，可直接跑在 Cloudflare Workers。
  */
 export async function generatePhoto(
@@ -58,5 +56,5 @@ export async function generatePhoto(
     throw new Error(`图片生成失败：${message}`);
   }
 
-  return storeImage(image.url);
+  return image.url;
 }

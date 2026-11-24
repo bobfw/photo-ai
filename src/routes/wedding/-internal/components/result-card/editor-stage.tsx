@@ -161,7 +161,6 @@ export function EditorStage({
       <RetryImage
         alt=""
         className="pointer-events-none absolute inset-0 size-full object-contain"
-        crossOrigin="anonymous"
         draggable={false}
         src={imageUrl}
         style={{

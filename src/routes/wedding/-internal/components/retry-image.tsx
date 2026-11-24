@@ -20,7 +20,8 @@ export function RetryImage({ src, onFinalError, ...properties }: RetryImagePrope
   return (
     <img
       {...properties}
-      src={retries === 0 ? src : `${src}?retry=${retries}`}
+      // 签名 URL 自带 query，再加参数会坏签名，只能原样重试
+      src={retries === 0 || src.includes("?") ? src : `${src}?retry=${retries}`}
       onError={() => {
         if (retries < MAX_RETRIES) {
           setRetries(retries + 1);

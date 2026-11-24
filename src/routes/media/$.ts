@@ -21,7 +21,7 @@ export const Route = createFileRoute("/media/$")({
           return new Response("Not Found", { status: 404 });
         }
 
-        // 新图片存在 R2 的 temp_24h/，超过 24 小时被生命周期删掉，404 是预期结果。
+        // 历史数据存在 R2 的 temp_24h/，超过 24 小时被生命周期删掉，404 是预期结果；新图直接代理 Ark 地址。
         if (isStoredImage(source)) {
           const object = await env.BUCKET.get(source);
           if (!object) return new Response("Not Found", { status: 404 });
