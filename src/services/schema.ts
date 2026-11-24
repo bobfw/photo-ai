@@ -45,7 +45,7 @@ export const generatedImages = sqliteTable(
     voucherId: integer("voucher_id")
       .notNull()
       .references(() => vouchers.id),
-    // R2 key（temp_24h/...），由桶的生命周期 24 小时后删除；老数据是 Ark URL
+    // Ark 原始地址（24 小时后失效）；历史数据是 R2 key（temp_24h/...，由桶的生命周期删除）
     imageUrl: text("image_url").notNull(),
     // Ark 原始地址，24 小时后失效，永久留着便于追溯；老数据为空
     sourceUrl: text("source_url"),

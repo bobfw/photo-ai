@@ -283,12 +283,12 @@ export const generatePoseImage = createServerFn({ method: "POST" })
         .insert(generatedImages)
         .values({
           voucherId: voucher.id,
-          imageUrl: image.key,
-          sourceUrl: image.sourceUrl,
+          imageUrl: image,
+          sourceUrl: image,
           poseIndex: data.pose,
           series: data.series,
           ratio: GENERATION_RATIO,
-          versions: JSON.stringify([{ url: image.key, sourceUrl: image.sourceUrl, createdAt }]),
+          versions: JSON.stringify([{ url: image, sourceUrl: image, createdAt }]),
           createdAt,
           expiresAt: createdAt + IMAGE_TTL_MS,
         })
@@ -344,15 +344,15 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
       const createdAt = Date.now();
       const expiresAt = createdAt + IMAGE_TTL_MS;
       const versions = appendVersion(row, {
-        url: image.key,
-        sourceUrl: image.sourceUrl,
+        url: image,
+        sourceUrl: image,
         createdAt,
       });
       await database
         .update(generatedImages)
         .set({
-          imageUrl: image.key,
-          sourceUrl: image.sourceUrl,
+          imageUrl: image,
+          sourceUrl: image,
           expiresAt,
           versions: JSON.stringify(versions),
           editStartedAt: sql`NULL`,
@@ -362,8 +362,8 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
       return toPublicImage(
         {
           ...row,
-          imageUrl: image.key,
-          sourceUrl: image.sourceUrl,
+          imageUrl: image,
+          sourceUrl: image,
           versions: JSON.stringify(versions),
           editCount: row.editCount + 1,
           expiresAt,
@@ -424,15 +424,15 @@ export const regenerateWedding = createServerFn({ method: "POST" })
       const createdAt = Date.now();
       const expiresAt = createdAt + IMAGE_TTL_MS;
       const versions = appendVersion(row, {
-        url: image.key,
-        sourceUrl: image.sourceUrl,
+        url: image,
+        sourceUrl: image,
         createdAt,
       });
       await database
         .update(generatedImages)
         .set({
-          imageUrl: image.key,
-          sourceUrl: image.sourceUrl,
+          imageUrl: image,
+          sourceUrl: image,
           expiresAt,
           versions: JSON.stringify(versions),
           editStartedAt: sql`NULL`,
@@ -442,8 +442,8 @@ export const regenerateWedding = createServerFn({ method: "POST" })
       return toPublicImage(
         {
           ...row,
-          imageUrl: image.key,
-          sourceUrl: image.sourceUrl,
+          imageUrl: image,
+          sourceUrl: image,
           versions: JSON.stringify(versions),
           editCount: row.editCount + 1,
           expiresAt,
