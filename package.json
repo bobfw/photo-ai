@@ -21,6 +21,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply photo-ai --remote",
     "voucher:create": "node scripts/create-voucher.ts",
     "voucher:link": "node scripts/create-voucher-link.ts",
+    "proxy:zip": "cd scripts/proxy-script && rm -f ../proxy-script.zip && zip -qrX ../proxy-script.zip .",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
