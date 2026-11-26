@@ -1,7 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -276,54 +276,60 @@ export const generatePoseImage = createServerFn({ method: "POST" })
     if (!voucher) throw new Error("凭证无效");
     assertTermsAccepted(voucher);
 
-    // 先原子占用一个额度，失败再退还。
-    const reserved = await database.run(sql`
-      UPDATE vouchers
-      SET generated_count = generated_count + 1
-      WHERE id = ${voucher.id} AND generated_count < total_images
-    `);
-    if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
-
-    try {
-      await recordGeneration(voucher.id, "generate", data.series, data.pose, GENERATION_RATIO);
-
-      const [bride, groom] = data.faces;
-      const poseImage = await loadPoseImage(data.series, data.pose);
-      const image = await generateWeddingPose(
-        [bride, groom],
-        poseImage,
-        outfit,
-        GENERATION_SIZE,
-        aspectPrompt(GENERATION_RATIO),
-        data.request,
-      );
-
-      const createdAt = Date.now();
-      const inserted = await database
-        .insert(generatedImages)
-        .values({
-          voucherId: voucher.id,
-          imageUrl: image,
-          sourceUrl: image,
-          poseIndex: data.pose,
-          series: data.series,
-          ratio: GENERATION_RATIO,
-          versions: JSON.stringify([{ url: image, sourceUrl: image, createdAt }]),
-          createdAt,
-          expiresAt: createdAt + IMAGE_TTL_MS,
-        })
-        .returning();
-      const row = inserted.at(0);
-      if (!row) throw new Error("保存照片失败");
-      return toPublicImage(row, voucher.maxEdits);
-    } catch (error) {
-      await database.run(sql`
+    // 客户端断开后 TanStack 会放弃等待 server fn；注册到 waitUntil，让生成和落库跑完。
+    // shortcut: waitUntil 在断开后只多给约 30 秒；Ark 更慢时需要改用 Queues 或 Durable Object。
+    const work = (async () => {
+      // 先原子占用一个额度，失败再退还。
+      const reserved = await database.run(sql`
         UPDATE vouchers
-        SET generated_count = generated_count - 1
-        WHERE id = ${voucher.id} AND generated_count > 0
+        SET generated_count = generated_count + 1
+        WHERE id = ${voucher.id} AND generated_count < total_images
       `);
-      throw error;
-    }
+      if (reserved.meta.changes === 0) throw new Error("这个凭证的照片额度已经用完");
+
+      try {
+        await recordGeneration(voucher.id, "generate", data.series, data.pose, GENERATION_RATIO);
+
+        const [bride, groom] = data.faces;
+        const poseImage = await loadPoseImage(data.series, data.pose);
+        const image = await generateWeddingPose(
+          [bride, groom],
+          poseImage,
+          outfit,
+          GENERATION_SIZE,
+          aspectPrompt(GENERATION_RATIO),
+          data.request,
+        );
+
+        const createdAt = Date.now();
+        const inserted = await database
+          .insert(generatedImages)
+          .values({
+            voucherId: voucher.id,
+            imageUrl: image,
+            sourceUrl: image,
+            poseIndex: data.pose,
+            series: data.series,
+            ratio: GENERATION_RATIO,
+            versions: JSON.stringify([{ url: image, sourceUrl: image, createdAt }]),
+            createdAt,
+            expiresAt: createdAt + IMAGE_TTL_MS,
+          })
+          .returning();
+        const row = inserted.at(0);
+        if (!row) throw new Error("保存照片失败");
+        return toPublicImage(row, voucher.maxEdits);
+      } catch (error) {
+        await database.run(sql`
+          UPDATE vouchers
+          SET generated_count = generated_count - 1
+          WHERE id = ${voucher.id} AND generated_count > 0
+        `);
+        throw error;
+      }
+    })();
+    waitUntil(work);
+    return work;
   });
 
 export const editGeneratedImage = createServerFn({ method: "POST" })
@@ -336,68 +342,73 @@ export const editGeneratedImage = createServerFn({ method: "POST" })
     const ratio = findImageRatio(row.ratio);
     if (!ratio) throw new Error("比例不存在");
 
-    // 先原子占用一次修改次数，失败再退还；生成中的同一张图拒绝重复提交。
-    const now = Date.now();
-    const reserved = await database.run(sql`
-      UPDATE generated_images
-      SET edit_count = edit_count + 1, edit_started_at = ${now}
-      WHERE id = ${row.id}
-        AND edit_count < ${voucher.maxEdits}
-        AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
-    `);
-    if (reserved.meta.changes === 0) {
-      if (row.editCount >= voucher.maxEdits) {
-        throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
-      }
-      throw new Error("这张照片正在修改中，请稍后再试");
-    }
-
-    try {
-      const photo = await loadImageDataUrl(resolveVersionUrl(row, data.url));
-      const image = await editWeddingPose(
-        photo,
-        data.instruction,
-        GENERATION_SIZE,
-        aspectPrompt(ratio.value),
-      );
-
-      const createdAt = Date.now();
-      const expiresAt = createdAt + IMAGE_TTL_MS;
-      const versions = appendVersion(row, {
-        url: image,
-        sourceUrl: image,
-        createdAt,
-      });
-      await database
-        .update(generatedImages)
-        .set({
-          imageUrl: image,
-          sourceUrl: image,
-          expiresAt,
-          versions: JSON.stringify(versions),
-          editStartedAt: sql`NULL`,
-        })
-        .where(eq(generatedImages.id, row.id));
-
-      return toPublicImage(
-        {
-          ...row,
-          imageUrl: image,
-          sourceUrl: image,
-          versions: JSON.stringify(versions),
-          editCount: row.editCount + 1,
-          expiresAt,
-        },
-        voucher.maxEdits,
-      );
-    } catch (error) {
-      await database.run(sql`
+    // 客户端断开后 TanStack 会放弃等待 server fn；注册到 waitUntil，让生成和落库跑完。
+    const work = (async () => {
+      // 先原子占用一次修改次数，失败再退还；生成中的同一张图拒绝重复提交。
+      const now = Date.now();
+      const reserved = await database.run(sql`
         UPDATE generated_images
-        SET edit_count = edit_count - 1, edit_started_at = NULL
-        WHERE id = ${row.id} AND edit_count > 0
+        SET edit_count = edit_count + 1, edit_started_at = ${now}
+        WHERE id = ${row.id}
+          AND edit_count < ${voucher.maxEdits}
+          AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
       `);
-      throw error;
-    }
+      if (reserved.meta.changes === 0) {
+        if (row.editCount >= voucher.maxEdits) {
+          throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+        }
+        throw new Error("这张照片正在修改中，请稍后再试");
+      }
+
+      try {
+        const photo = await loadImageDataUrl(resolveVersionUrl(row, data.url));
+        const image = await editWeddingPose(
+          photo,
+          data.instruction,
+          GENERATION_SIZE,
+          aspectPrompt(ratio.value),
+        );
+
+        const createdAt = Date.now();
+        const expiresAt = createdAt + IMAGE_TTL_MS;
+        const versions = appendVersion(row, {
+          url: image,
+          sourceUrl: image,
+          createdAt,
+        });
+        await database
+          .update(generatedImages)
+          .set({
+            imageUrl: image,
+            sourceUrl: image,
+            expiresAt,
+            versions: JSON.stringify(versions),
+            editStartedAt: sql`NULL`,
+          })
+          .where(eq(generatedImages.id, row.id));
+
+        return toPublicImage(
+          {
+            ...row,
+            imageUrl: image,
+            sourceUrl: image,
+            versions: JSON.stringify(versions),
+            editCount: row.editCount + 1,
+            expiresAt,
+          },
+          voucher.maxEdits,
+        );
+      } catch (error) {
+        await database.run(sql`
+          UPDATE generated_images
+          SET edit_count = edit_count - 1, edit_started_at = NULL
+          WHERE id = ${row.id} AND edit_count > 0
+        `);
+        throw error;
+      }
+    })();
+    waitUntil(work);
+    return work;
   });
 
 export const regenerateWedding = createServerFn({ method: "POST" })
@@ -412,70 +423,75 @@ export const regenerateWedding = createServerFn({ method: "POST" })
     const ratio = findImageRatio(row.ratio);
     if (!ratio) throw new Error("比例不存在");
 
-    // 重新生成和提示词修改共用每张图的修改次数，先原子占用，失败再退还。
-    const now = Date.now();
-    const reserved = await database.run(sql`
-      UPDATE generated_images
-      SET edit_count = edit_count + 1, edit_started_at = ${now}
-      WHERE id = ${row.id}
-        AND edit_count < ${voucher.maxEdits}
-        AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
-    `);
-    if (reserved.meta.changes === 0) {
-      if (row.editCount >= voucher.maxEdits) {
-        throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
-      }
-      throw new Error("这张照片正在修改中，请稍后再试");
-    }
-
-    try {
-      await recordGeneration(voucher.id, "regenerate", row.series, row.poseIndex, row.ratio);
-
-      const [bride, groom] = data.faces;
-      const poseImage = await loadPoseImage(row.series, row.poseIndex);
-      const image = await generateWeddingPose(
-        [bride, groom],
-        poseImage,
-        series.outfit,
-        GENERATION_SIZE,
-        aspectPrompt(ratio.value),
-      );
-
-      const createdAt = Date.now();
-      const expiresAt = createdAt + IMAGE_TTL_MS;
-      const versions = appendVersion(row, {
-        url: image,
-        sourceUrl: image,
-        createdAt,
-      });
-      await database
-        .update(generatedImages)
-        .set({
-          imageUrl: image,
-          sourceUrl: image,
-          expiresAt,
-          versions: JSON.stringify(versions),
-          editStartedAt: sql`NULL`,
-        })
-        .where(eq(generatedImages.id, row.id));
-
-      return toPublicImage(
-        {
-          ...row,
-          imageUrl: image,
-          sourceUrl: image,
-          versions: JSON.stringify(versions),
-          editCount: row.editCount + 1,
-          expiresAt,
-        },
-        voucher.maxEdits,
-      );
-    } catch (error) {
-      await database.run(sql`
+    // 客户端断开后 TanStack 会放弃等待 server fn；注册到 waitUntil，让生成和落库跑完。
+    const work = (async () => {
+      // 重新生成和提示词修改共用每张图的修改次数，先原子占用，失败再退还。
+      const now = Date.now();
+      const reserved = await database.run(sql`
         UPDATE generated_images
-        SET edit_count = edit_count - 1, edit_started_at = NULL
-        WHERE id = ${row.id} AND edit_count > 0
+        SET edit_count = edit_count + 1, edit_started_at = ${now}
+        WHERE id = ${row.id}
+          AND edit_count < ${voucher.maxEdits}
+          AND (edit_started_at IS NULL OR edit_started_at < ${now - EDIT_LOCK_MS})
       `);
-      throw error;
-    }
+      if (reserved.meta.changes === 0) {
+        if (row.editCount >= voucher.maxEdits) {
+          throw new Error(`每张照片最多修改 ${voucher.maxEdits} 次`);
+        }
+        throw new Error("这张照片正在修改中，请稍后再试");
+      }
+
+      try {
+        await recordGeneration(voucher.id, "regenerate", row.series, row.poseIndex, row.ratio);
+
+        const [bride, groom] = data.faces;
+        const poseImage = await loadPoseImage(row.series, row.poseIndex);
+        const image = await generateWeddingPose(
+          [bride, groom],
+          poseImage,
+          series.outfit,
+          GENERATION_SIZE,
+          aspectPrompt(ratio.value),
+        );
+
+        const createdAt = Date.now();
+        const expiresAt = createdAt + IMAGE_TTL_MS;
+        const versions = appendVersion(row, {
+          url: image,
+          sourceUrl: image,
+          createdAt,
+        });
+        await database
+          .update(generatedImages)
+          .set({
+            imageUrl: image,
+            sourceUrl: image,
+            expiresAt,
+            versions: JSON.stringify(versions),
+            editStartedAt: sql`NULL`,
+          })
+          .where(eq(generatedImages.id, row.id));
+
+        return toPublicImage(
+          {
+            ...row,
+            imageUrl: image,
+            sourceUrl: image,
+            versions: JSON.stringify(versions),
+            editCount: row.editCount + 1,
+            expiresAt,
+          },
+          voucher.maxEdits,
+        );
+      } catch (error) {
+        await database.run(sql`
+          UPDATE generated_images
+          SET edit_count = edit_count - 1, edit_started_at = NULL
+          WHERE id = ${row.id} AND edit_count > 0
+        `);
+        throw error;
+      }
+    })();
+    waitUntil(work);
+    return work;
   });
