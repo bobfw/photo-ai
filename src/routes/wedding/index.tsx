@@ -1,54 +1,39 @@
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { useState, type ReactNode } from "react";
 import { z } from "zod";
 
 import { toast } from "#ui/toast";
 
+import { CenteredMessage } from "./-internal/components/centered-message.tsx";
+import { CHECKERBOARD } from "./-internal/components/checkerboard.ts";
 import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
 import { PosePicker, type PoseChoice } from "./-internal/components/pose-picker.tsx";
-import { ResultCard } from "./-internal/components/result-card/index.tsx";
-import { generatePoseImage, getVoucherState } from "./-internal/services/wedding.ts";
-
-/* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
-
-type VoucherState = NonNullable<Awaited<ReturnType<typeof getVoucherState>>>;
+import { RetryImage } from "./-internal/components/retry-image.tsx";
+import { useWeddingPhotos } from "./-internal/components/wedding-photos.tsx";
+import { findPoseSeries } from "./-internal/services/poses.ts";
+import { generatePoseImage, loadWeddingState } from "./-internal/services/wedding.ts";
 
 export const Route = createFileRoute("/wedding/")({
   validateSearch: z.object({ code: z.string().optional() }),
   loaderDeps: ({ search }) => ({ code: search.code }),
-  loader: async ({ deps: { code } }) => {
-    if (!code) {
-      throw redirect({ to: "/wedding/voucher" });
-    }
-    if (!z.uuid().safeParse(code).success) {
-      throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
-    }
-    const state = await getVoucherState({ data: { code } });
-    if (!state) {
-      throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
-    }
-    if (!state.termsAccepted) {
-      throw redirect({ to: "/wedding/voucher", search: { code, error: "consent" } });
-    }
-    return { code, state };
-  },
+  loader: async ({ deps: { code } }) => loadWeddingState(code),
   pendingComponent: () => <CenteredMessage>正在验证凭证…</CenteredMessage>,
   component: WeddingPage,
 });
 
 function WeddingPage() {
   const { code, state } = Route.useLoaderData();
-  return <WeddingStudio code={code} state={state} />;
-}
+  const navigate = useNavigate();
+  const { hasPhotos, photoA, photoB, setPhotoA, setPhotoB } = useWeddingPhotos();
 
-function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
-  const [images, setImages] = useState(state.images);
-  const [remaining, setRemaining] = useState(state.remaining);
-  const [photoA, setPhotoA] = useState("");
-  const [photoB, setPhotoB] = useState("");
-  const hasPhotos = photoA !== "" && photoB !== "";
+  function openImage(imageId: number) {
+    void navigate({
+      to: "/wedding/result/$id",
+      params: { id: String(imageId) },
+      search: { code },
+    });
+  }
 
   const generateMutation = useMutation({
     mutationFn: (choice: PoseChoice) =>
@@ -63,13 +48,12 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         },
       }),
     onSuccess: (image) => {
-      setImages((current) => [...current, image]);
-      setRemaining((current) => Math.max(0, current - 1));
       toast.add({
         title: "生成完成",
         description: "可以换背景、加贴纸了",
         type: "success",
       });
+      openImage(image.id);
     },
   });
 
@@ -79,7 +63,7 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-heading text-2xl">出片 · 婚纱照</h1>
           <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
-            还可生成 {remaining} 张
+            还可生成 {state.remaining} 张
           </span>
         </div>
 
@@ -103,49 +87,57 @@ function WeddingStudio({ code, state }: { code: string; state: VoucherState }) {
           <StepHeading
             index="02"
             title="你们的婚纱照"
-            hint="选一个系列和姿态，确认时可写补充要求；生成后可以换背景、加贴纸。"
+            hint="选一个系列和姿态，确认时可写补充要求；生成后进入编辑页换背景、加贴纸并保存。"
           />
-          {images.length > 0 ? (
+          {state.images.length > 0 ? (
             <div className="flex items-end justify-between gap-4">
               <p className="text-muted-foreground text-[13px] leading-5">
                 图片仅保留 24 小时，请及时保存。
               </p>
               <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
-                {images.length} 张
+                {state.images.length} 张
               </span>
             </div>
           ) : undefined}
-          {images.length > 0 || generateMutation.isPending ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {images.map((image) => (
-                <ResultCard
-                  code={code}
-                  faces={[photoA, photoB]}
-                  hasPhotos={hasPhotos}
-                  image={image}
+          {state.images.length > 0 || generateMutation.isPending ? (
+            <div className="grid grid-cols-3 gap-2">
+              {state.images.map((image) => (
+                <button
+                  aria-label={`打开${findPoseSeries(image.series)?.title ?? image.series}姿态 ${image.pose}`}
+                  className="ease-out-strong border-border relative block overflow-hidden rounded-lg border transition duration-150 active:scale-[0.98]"
                   key={image.id}
-                  onImageChange={(updated) => {
-                    setImages((current) =>
-                      current.map((item) => (item.id === updated.id ? updated : item)),
-                    );
+                  onClick={() => {
+                    openImage(image.id);
                   }}
-                />
+                  style={CHECKERBOARD}
+                  type="button"
+                >
+                  <RetryImage
+                    alt=""
+                    className="w-full object-contain"
+                    src={image.url}
+                    style={{ aspectRatio: image.ratio === "3:4" ? "3 / 4" : "2 / 3" }}
+                  />
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
+                    姿态 {image.pose}
+                  </span>
+                </button>
               ))}
               {generateMutation.isPending ? (
-                <GeneratingCard pose={generateMutation.variables.pose} />
+                <GeneratingTile pose={generateMutation.variables.pose} />
               ) : undefined}
             </div>
           ) : undefined}
           <div className={generateMutation.isPending ? "hidden" : undefined}>
             <PosePicker
-              actionDisabled={remaining === 0}
-              actionLabel={actionLabel(remaining)}
+              actionDisabled={state.remaining === 0}
+              actionLabel={actionLabel(state.remaining)}
               onGenerate={(choice) => {
                 generateMutation.mutate(choice);
               }}
               triggerDisabled={!hasPhotos}
               triggerHint={hasPhotos ? "选系列和姿态，生成透明底婚纱照" : "请先上传两张人像照片"}
-              triggerLabel={images.length === 0 ? "选一个姿态开始生成" : "再生成一张婚纱照"}
+              triggerLabel={state.images.length === 0 ? "选一个姿态开始生成" : "再生成一张婚纱照"}
             />
             {generateMutation.error ? (
               <p className="text-destructive mt-4 text-center text-sm" role="alert">
@@ -173,28 +165,25 @@ function StepHeading({ index, title, hint }: { index: string; title: string; hin
   );
 }
 
-function GeneratingCard({ pose }: { pose: number }) {
+function GeneratingTile({ pose }: { pose: number }) {
   return (
-    <div aria-busy="true" className="w-full">
+    <div
+      aria-busy="true"
+      className="border-border relative overflow-hidden rounded-lg border"
+      style={{ aspectRatio: "2 / 3" }}
+    >
+      <div className="bg-secondary size-full" />
       <div
-        className="border-border relative overflow-hidden rounded-2xl border"
-        style={{ aspectRatio: "2 / 3" }}
+        className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2 text-center backdrop-blur-sm"
+        role="status"
       >
-        <div className="bg-secondary size-full" />
-        <div
-          className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-          role="status"
-        >
-          <Loader2
-            aria-hidden
-            className="text-primary size-7 animate-spin motion-reduce:animate-none"
-            strokeWidth={1.5}
-          />
-          <p className="font-heading text-xl">正在生成姿态 {pose}</p>
-          <p className="text-muted-foreground text-[13px] leading-5">
-            预计 20 秒–2 分钟，请勿刷新页面。
-          </p>
-        </div>
+        <Loader2
+          aria-hidden
+          className="text-primary size-5 animate-spin motion-reduce:animate-none"
+          strokeWidth={1.5}
+        />
+        <p className="text-[11px] font-medium">姿态 {pose}</p>
+        <p className="text-muted-foreground text-[10px] leading-3">约 20 秒–2 分钟</p>
       </div>
     </div>
   );
@@ -202,13 +191,4 @@ function GeneratingCard({ pose }: { pose: number }) {
 
 function actionLabel(remaining: number) {
   return remaining === 0 ? "照片额度已用完" : "生成这张";
-}
-
-function CenteredMessage({ children }: { children: ReactNode }) {
-  return (
-    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-3 px-6">
-      <span className="font-heading text-2xl tracking-[0.3em]">出片</span>
-      <p className="text-muted-foreground text-sm">{children}</p>
-    </main>
-  );
 }

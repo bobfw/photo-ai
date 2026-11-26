@@ -1,6 +1,4 @@
-import type { CSSProperties } from "react";
-
-import { stickerImageUrl } from "../../services/poses.ts";
+import { stickerImageUrl } from "../../../-internal/services/poses.ts";
 
 // 婚纱摄影棚常用的背景纸颜色：红色系 + 中性/流行色
 export const BACKGROUNDS = [
@@ -53,10 +51,3 @@ const IMAGE_PROXY_BASE = "https://proxy.yumus.cn";
 export function proxyImageUrl(source: string) {
   return `${IMAGE_PROXY_BASE}/${source}`;
 }
-
-export const CHECKERBOARD: CSSProperties = {
-  backgroundImage:
-    "linear-gradient(45deg, #e9e6e1 25%, transparent 25%), linear-gradient(-45deg, #e9e6e1 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e9e6e1 75%), linear-gradient(-45deg, transparent 75%, #e9e6e1 75%)",
-  backgroundSize: "16px 16px",
-  backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
-};

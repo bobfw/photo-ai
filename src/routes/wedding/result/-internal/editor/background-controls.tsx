@@ -3,8 +3,9 @@ import { useRef, useState } from "react";
 
 import { cn } from "#lib/utils";
 
-import { fileToDataUrl } from "../photo-uploader.tsx";
-import { BACKGROUNDS, CHECKERBOARD } from "./constants.ts";
+import { CHECKERBOARD } from "../../../-internal/components/checkerboard.ts";
+import { fileToDataUrl } from "../../../-internal/components/photo-uploader.tsx";
+import { BACKGROUNDS } from "./constants.ts";
 
 interface BackgroundControlsProperties {
   background: string;

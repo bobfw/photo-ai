@@ -2,8 +2,9 @@ import { useEffect, useRef, type PointerEvent, type ReactNode, type RefObject } 
 
 import { cn } from "#lib/utils";
 
-import { RetryImage } from "../retry-image.tsx";
-import { CHECKERBOARD, STUDIO_LIGHT_PREVIEW_WIDTH } from "./constants.ts";
+import { CHECKERBOARD } from "../../../-internal/components/checkerboard.ts";
+import { RetryImage } from "../../../-internal/components/retry-image.tsx";
+import { STUDIO_LIGHT_PREVIEW_WIDTH } from "./constants.ts";
 import { paintContactShadow, type PersonFootprint } from "./contact-shadow.ts";
 import { paintPaperGrain, paintPaperTexture } from "./paper-texture.ts";
 import { paintStudioLight } from "./studio-light.ts";
@@ -19,6 +20,7 @@ interface EditorStageProperties {
   isContactShadowVisible: boolean;
   isStudioBackdropVisible: boolean;
   lightIntensity: number;
+  onFinalError: () => void;
   onPhotoPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
   onPhotoPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
   onPhotoPointerUp: (event: PointerEvent<HTMLDivElement>) => void;
@@ -43,6 +45,7 @@ export function EditorStage({
   isContactShadowVisible,
   isStudioBackdropVisible,
   lightIntensity,
+  onFinalError,
   onPhotoPointerDown,
   onPhotoPointerMove,
   onPhotoPointerUp,
@@ -134,8 +137,7 @@ export function EditorStage({
 
   return (
     <div
-      className="relative mx-auto w-full max-w-72 touch-none overflow-hidden rounded-xl border select-none"
-      data-base-ui-swipe-ignore=""
+      className="relative mx-auto w-full touch-none overflow-hidden rounded-xl border select-none"
       onPointerCancel={onPhotoPointerUp}
       onPointerDown={onPhotoPointerDown}
       onPointerMove={onPhotoPointerMove}
@@ -162,6 +164,7 @@ export function EditorStage({
         alt=""
         className="pointer-events-none absolute inset-0 size-full object-contain"
         draggable={false}
+        onFinalError={onFinalError}
         src={imageUrl}
         style={{
           transform: `translate(${photoOffset.x}%, ${photoOffset.y}%) scale(${photoScale})`,

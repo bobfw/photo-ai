@@ -1,3 +1,4 @@
+import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { env } from "cloudflare:workers";
@@ -10,6 +11,8 @@ import { isStoredImage } from "#services/images";
 import { generatedImages, generationRecords, vouchers } from "#services/schema";
 
 import { findImageRatio, findPoseSeries, POSE_COUNT, poseImageUrl } from "./poses.ts";
+
+/* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
 
 const VOUCHER_TYPE = "wedding";
 const IMAGE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -225,6 +228,24 @@ export const getVoucherState = createServerFn({ method: "POST" })
       images: rows.map((row) => toPublicImage(row, voucher.maxEdits)),
     };
   });
+
+// /wedding 下各路由的 loader 共用：凭证无效或未同意协议时统一跳回凭证页。
+export async function loadWeddingState(code: string | undefined) {
+  if (!code) {
+    throw redirect({ to: "/wedding/voucher" });
+  }
+  if (!z.uuid().safeParse(code).success) {
+    throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
+  }
+  const state = await getVoucherState({ data: { code } });
+  if (!state) {
+    throw redirect({ to: "/wedding/voucher", search: { error: "invalid" } });
+  }
+  if (!state.termsAccepted) {
+    throw redirect({ to: "/wedding/voucher", search: { code, error: "consent" } });
+  }
+  return { code, state };
+}
 
 export const acceptVoucherTerms = createServerFn({ method: "POST" })
   .validator((data) => voucherInput.parse(data))
