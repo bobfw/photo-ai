@@ -124,25 +124,16 @@ async function recordGeneration(
   });
 }
 
-// 老客户端用 /media 代理地址标记版本，保留兼容；新客户端直接传原图地址。
-function imageProxyUrl(source: string) {
-  return `/media/${btoa(source).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "")}`;
-}
-
 function readVersions(value: string) {
   return JSON.parse(value) as ImageVersion[];
 }
 
-function isVersionUrl(url: string, sourceUrl: string | null | undefined, publicUrl: string) {
-  return url === publicUrl || sourceUrl === publicUrl || imageProxyUrl(url) === publicUrl;
-}
-
 // 前端传当前选中的版本地址；确认它属于这张图。
 function resolveVersionUrl(row: typeof generatedImages.$inferSelect, publicUrl: string) {
-  if (isVersionUrl(row.imageUrl, row.sourceUrl, publicUrl)) return row.imageUrl;
+  if (row.imageUrl === publicUrl || row.sourceUrl === publicUrl) return row.imageUrl;
 
-  const version = readVersions(row.versions).find((item) =>
-    isVersionUrl(item.url, item.sourceUrl, publicUrl),
+  const version = readVersions(row.versions).find(
+    (item) => item.url === publicUrl || item.sourceUrl === publicUrl,
   );
   if (!version) throw new Error("版本不存在");
   if (version.createdAt + IMAGE_TTL_MS <= Date.now()) throw new Error("这个版本已过期");
