@@ -39,7 +39,7 @@ A voucher-gated AI studio for wedding photos: the customer picks a pose from a c
 - Wedding vouchers have a fixed image quota; multiple vouchers coexist. New-generation quota is reserved atomically and returned if generation fails. Each image also has a voucher-configured modification count shared by prompt edits and regeneration.
 - Input is two frontal photos (JPG/PNG/WebP) and one pose from the series. The pose sketch supplies only the pose; the faces and wedding outfits are generated from the photos.
 - Output is one portrait per pose at 2:3, generated with a prompt that prioritizes identity fidelity, then photographic realism (real skin, fabric, light; no text, watermarks, or logos), on a true transparent background. The background composer can export the final image at 2:3 or 3:4.
-- The transparent PNG stays on Ark's URL and is proxied same-origin through `/media` so the browser canvas can compose and export it without cross-origin taint.
+- The transparent PNG stays on Ark's URL and is read through the CORS proxy `proxy.yumus.cn` so the browser canvas can compose and export it without cross-origin taint.
 - Generated image records expire after 24 hours, as does the Ark URL. Uploaded face photos are not persisted.
 - Portrait (写真) vouchers exist as a type in the admin console, but the portrait generation flow is not wired up; the console states this.
 - The interface is Simplified Chinese only. There is no account system or in-app payment.

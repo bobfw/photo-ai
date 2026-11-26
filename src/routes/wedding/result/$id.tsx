@@ -66,8 +66,8 @@ function ResultPage() {
   const seriesTitle = findPoseSeries(image.series)?.title ?? image.series;
   const stageReference = useRef<HTMLDivElement>(null);
   const nextStickerId = useRef(1);
-  // 展示和 canvas 都走 CORS 代理；老数据没有原图时回退到 /media 的 R2 代理
-  const imageSource = image.sourceUrl ? proxyImageUrl(image.sourceUrl) : image.url;
+  // 展示和 canvas 都走 CORS 代理；Ark 没有 CORS 头，canvas 无法直接导出
+  const imageSource = proxyImageUrl(image.sourceUrl ?? image.url);
   const [background, setBackground] = useState("transparent");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [dofIntensity, setDofIntensity] = useState(0.35);
@@ -272,7 +272,7 @@ function ResultPage() {
   async function saveOriginal() {
     setError("");
     try {
-      const response = await fetch(image.url);
+      const response = await fetch(imageSource);
       if (!response.ok) throw new Error("原图已过期");
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");

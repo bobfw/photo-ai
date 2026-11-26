@@ -13,7 +13,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WeddingRouteRouteImport } from './routes/wedding/route'
-import { Route as MediaSplatRouteImport } from './routes/media/$'
 import { Route as TermsIndexRouteImport } from './routes/terms/index'
 import { Route as WeddingIndexRouteImport } from './routes/wedding/index'
 import { Route as WeddingVoucherRouteImport } from './routes/wedding/voucher'
@@ -54,11 +53,6 @@ const AdminLoginRouteLazyRoute = AdminLoginRouteLazyRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/login/route.lazy').then((d) => d.Route),
 )
-const MediaSplatRoute = MediaSplatRouteImport.update({
-  id: '/media/$',
-  path: '/media/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TermsIndexRoute = TermsIndexRouteImport.update({
   id: '/terms/',
   path: '/terms/',
@@ -91,7 +85,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/wedding': typeof WeddingRouteRouteWithChildren
   '/admin': typeof AdminNeed_authRouteLazyRouteWithChildren
-  '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/login': typeof AdminLoginRouteLazyRoute
   '/terms/': typeof TermsIndexRoute
@@ -102,7 +95,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminNeed_authIndexLazyRoute
-  '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/login': typeof AdminLoginRouteLazyRoute
   '/terms': typeof TermsIndexRoute
@@ -114,7 +106,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/wedding': typeof WeddingRouteRouteWithChildren
   '/admin': typeof AdminRouteLazyRouteWithChildren
-  '/media/$': typeof MediaSplatRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/_need_auth': typeof AdminNeed_authRouteLazyRouteWithChildren
   '/admin/login': typeof AdminLoginRouteLazyRoute
@@ -129,7 +120,6 @@ export interface FileRouteTypes {
     | '/'
     | '/wedding'
     | '/admin'
-    | '/media/$'
     | '/wedding/voucher'
     | '/admin/login'
     | '/terms/'
@@ -140,7 +130,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
-    | '/media/$'
     | '/wedding/voucher'
     | '/admin/login'
     | '/terms'
@@ -151,7 +140,6 @@ export interface FileRouteTypes {
     | '/'
     | '/wedding'
     | '/admin'
-    | '/media/$'
     | '/wedding/voucher'
     | '/admin/_need_auth'
     | '/admin/login'
@@ -165,7 +153,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   WeddingRouteRoute: typeof WeddingRouteRouteWithChildren
   AdminRouteLazyRoute: typeof AdminRouteLazyRouteWithChildren
-  MediaSplatRoute: typeof MediaSplatRoute
   TermsIndexRoute: typeof TermsIndexRoute
 }
 
@@ -205,13 +192,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteLazyRouteImport
       parentRoute: typeof AdminRouteLazyRoute
-    }
-    '/media/$': {
-      id: '/media/$'
-      path: '/media/$'
-      fullPath: '/media/$'
-      preLoaderRoute: typeof MediaSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/terms/': {
       id: '/terms/'
@@ -299,7 +279,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   WeddingRouteRoute: WeddingRouteRouteWithChildren,
   AdminRouteLazyRoute: AdminRouteLazyRouteWithChildren,
-  MediaSplatRoute: MediaSplatRoute,
   TermsIndexRoute: TermsIndexRoute,
 }
 export const routeTree = rootRouteImport

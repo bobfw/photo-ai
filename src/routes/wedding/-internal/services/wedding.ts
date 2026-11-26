@@ -71,8 +71,9 @@ interface ImageVersion {
 
 export interface PublicImage {
   id: number;
+  // 当前版本地址：新数据是 Ark 原图，老数据可能是 R2 key；前端经 proxy.yumus.cn 展示和合成
   url: string;
-  // Ark 原始地址，前端直接拿它展示；canvas 经 /media 同源代理。老数据没有，回退到 url
+  // Ark 原始地址，老数据没有
   sourceUrl?: string;
   versions: ImageVersion[];
   series: string;
@@ -123,7 +124,7 @@ async function recordGeneration(
   });
 }
 
-// canvas 不能直接导出跨域图，统一走 /media 同源代理
+// 老客户端用 /media 代理地址标记版本，保留兼容；新客户端直接传原图地址。
 function imageProxyUrl(source: string) {
   return `/media/${btoa(source).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "")}`;
 }
@@ -132,11 +133,17 @@ function readVersions(value: string) {
   return JSON.parse(value) as ImageVersion[];
 }
 
-// 前端传同源代理 URL；换回 R2 key（老数据是 Ark URL），并确认它属于这张图。
-function resolveVersionUrl(row: typeof generatedImages.$inferSelect, publicUrl: string) {
-  if (imageProxyUrl(row.imageUrl) === publicUrl) return row.imageUrl;
+function isVersionUrl(url: string, sourceUrl: string | null | undefined, publicUrl: string) {
+  return url === publicUrl || sourceUrl === publicUrl || imageProxyUrl(url) === publicUrl;
+}
 
-  const version = readVersions(row.versions).find((item) => imageProxyUrl(item.url) === publicUrl);
+// 前端传当前选中的版本地址；确认它属于这张图。
+function resolveVersionUrl(row: typeof generatedImages.$inferSelect, publicUrl: string) {
+  if (isVersionUrl(row.imageUrl, row.sourceUrl, publicUrl)) return row.imageUrl;
+
+  const version = readVersions(row.versions).find((item) =>
+    isVersionUrl(item.url, item.sourceUrl, publicUrl),
+  );
   if (!version) throw new Error("版本不存在");
   if (version.createdAt + IMAGE_TTL_MS <= Date.now()) throw new Error("这个版本已过期");
   return version.url;
@@ -159,12 +166,13 @@ function toPublicImage(row: typeof generatedImages.$inferSelect, maxEdits: numbe
   const now = Date.now();
   return {
     id: row.id,
-    url: imageProxyUrl(row.imageUrl),
+    // 生成图直接用 Ark 原图地址；老数据没有 sourceUrl 时回退到存的值
+    url: row.sourceUrl ?? row.imageUrl,
     sourceUrl: row.sourceUrl ?? undefined,
     versions: readVersions(row.versions)
       .filter((version) => version.createdAt + IMAGE_TTL_MS > now)
       .map((version) => ({
-        url: imageProxyUrl(version.url),
+        url: version.sourceUrl ?? version.url,
         sourceUrl: version.sourceUrl,
         createdAt: version.createdAt,
       })),
@@ -177,7 +185,7 @@ function toPublicImage(row: typeof generatedImages.$inferSelect, maxEdits: numbe
   };
 }
 
-// 生成结果固定是 PNG：新图从 R2 读，老数据从 Ark URL 取；服务端读取不受 CORS 限制。
+// 生成结果固定是 PNG：新图从 Ark 读，老数据在 R2；服务端读取不受 CORS 限制。
 async function loadImageDataUrl(source: string) {
   if (isStoredImage(source)) {
     const object = await env.BUCKET.get(source);
