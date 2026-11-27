@@ -35,6 +35,7 @@ import {
 } from "./-internal/editor/constants.ts";
 import { EditorStage } from "./-internal/editor/editor-stage.tsx";
 import type { Sticker } from "./-internal/editor/types.ts";
+import { useCleanCutout } from "./-internal/editor/use-clean-cutout.ts";
 import { usePersonFootprint } from "./-internal/editor/use-person-footprint.ts";
 import { usePhotoGesture } from "./-internal/editor/use-photo-gesture.ts";
 
@@ -67,7 +68,8 @@ function ResultPage() {
   const stageReference = useRef<HTMLDivElement>(null);
   const nextStickerId = useRef(1);
   // 展示和 canvas 都走 CORS 代理；Ark 没有 CORS 头，canvas 无法直接导出
-  const imageSource = proxyImageUrl(image.sourceUrl ?? image.url);
+  const rawImageSource = proxyImageUrl(image.sourceUrl ?? image.url);
+  const imageSource = useCleanCutout(rawImageSource);
   const [background, setBackground] = useState("transparent");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [dofIntensity, setDofIntensity] = useState(0.35);
@@ -88,7 +90,7 @@ function ResultPage() {
     handlePhotoPointerDown,
     handlePhotoPointerMove,
     handlePhotoPointerUp,
-  } = usePhotoGesture(imageSource, stageReference);
+  } = usePhotoGesture(rawImageSource, stageReference);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [error, setError] = useState("");
@@ -111,7 +113,7 @@ function ResultPage() {
   useEffect(() => {
     setImageAttempt(0);
     setImageFailed(false);
-  }, [imageSource]);
+  }, [rawImageSource]);
 
   useEffect(() => {
     if (!previewUrl) return;
