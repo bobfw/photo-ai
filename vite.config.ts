@@ -1,22 +1,8 @@
-import { cloudflare } from "@cloudflare/vite-plugin";
-import tailwindcss from "@tailwindcss/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 import { deferOxlintConfig } from "./scripts/oxlint.rules.ts";
 
 export default defineConfig({
-  plugins: [
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tanstackStart({ spa: { enabled: true } }),
-    react(),
-    tailwindcss(),
-  ],
-  server: {
-    port: 5701,
-    host: "0.0.0.0",
-  },
   fmt: {
     sortImports: true,
     sortTailwindcss: true,
@@ -43,12 +29,12 @@ export default defineConfig({
     overrides: [
       {
         // shadcn conventions require lib/utils.ts
-        files: ["src/lib/utils.ts"],
+        files: ["**/src/lib/utils.ts"],
         rules: { "unicorn-js/name-replacements": "off" },
       },
       {
         // shadcn/ui vendored components use their own naming and browser patterns
-        files: ["src/components/ui/**", "src/hooks/**"],
+        files: ["**/src/components/ui/**", "**/src/hooks/**"],
         rules: {
           "no-unused-expressions": "off",
           "unicorn/max-nested-calls": "off",

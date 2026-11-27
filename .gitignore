@@ -13,7 +13,7 @@ dist-ssr
 korean-wedding-pinterest/
 
 # EdgeOne 上传包，由 pnpm run proxy:zip 生成
-scripts/proxy-script.zip
+apps/photo-ai/scripts/proxy-script.zip
 
 # Downloaded reference images (not for commit)
 reference-images/
