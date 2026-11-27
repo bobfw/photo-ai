@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-
-import { CHECKERBOARD } from "../checkerboard.ts";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 interface ImagePreviewProperties {
   isTransparent: boolean;
   onClose: () => void;
   src: string;
+  checkerboard?: CSSProperties;
 }
 
 interface Point {
@@ -32,7 +37,12 @@ const MAX_SCALE = 4;
 const DOUBLE_TAP_MS = 300;
 const TAP_MOVE_TOLERANCE = 8;
 
-export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProperties) {
+export function ImagePreview({
+  checkerboard,
+  isTransparent,
+  onClose,
+  src,
+}: ImagePreviewProperties) {
   const closeReference = useRef<HTMLButtonElement>(null);
   const imageReference = useRef<HTMLImageElement>(null);
   const pointersReference = useRef<Map<number, Point>>(new Map());
@@ -55,9 +65,10 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
   });
 
   useEffect(() => {
-    document.body.classList.add("modal-open");
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.classList.remove("modal-open");
+      document.body.style.overflow = previousOverflow;
     };
   }, []);
 
@@ -216,7 +227,7 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
     <div
       aria-label="成片预览"
       aria-modal="true"
-      className="fixed bottom-0 left-0 right-0 top-0 z-[200] flex touch-none items-center justify-center overflow-hidden bg-[rgba(0,0,0,0.94)] px-4 pb-[calc(16px_+_var(--safe-bottom))] pt-[calc(56px_+_var(--safe-top))]"
+      className="fixed top-0 right-0 bottom-0 left-0 z-[200] flex touch-none items-center justify-center overflow-hidden bg-[rgba(0,0,0,0.94)] px-4 pt-[calc(56px_+_var(--safe-top))] pb-[calc(16px_+_var(--safe-bottom))]"
       onClick={(event) => {
         if (event.target === event.currentTarget) onCloseReference.current();
       }}
@@ -229,7 +240,7 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
     >
       <img
         alt="成片预览"
-        className="block max-h-full max-w-full touch-none select-none object-contain"
+        className="block max-h-full max-w-full touch-none object-contain select-none"
         draggable={false}
         onPointerCancel={handlePointerCancel}
         onPointerDown={handlePointerDown}
@@ -240,7 +251,7 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
         style={{
           transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
           transformOrigin: "center",
-          ...(isTransparent && CHECKERBOARD),
+          ...(isTransparent && checkerboard),
         }}
       />
       <p className="pointer-events-none absolute bottom-[calc(16px_+_var(--safe-bottom))] left-1/2 -translate-x-1/2 text-xs text-white/70">
@@ -248,7 +259,7 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
       </p>
       <button
         aria-label="关闭预览"
-        className="absolute left-3 top-[calc(12px_+_var(--safe-top))] flex h-11 w-11 items-center justify-center rounded-full border-0 bg-[rgba(255,255,255,0.16)] text-white"
+        className="absolute top-[calc(12px_+_var(--safe-top))] left-3 flex h-11 w-11 items-center justify-center rounded-full border-0 bg-[rgba(255,255,255,0.16)] text-white"
         onClick={() => {
           onCloseReference.current();
         }}

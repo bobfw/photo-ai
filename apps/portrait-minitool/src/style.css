@@ -94,41 +94,6 @@
 }
 
 @layer components {
-  /* 原生 range 的轨道和滑块只能用伪元素样式，这一处保留 class。 */
-  .range::-webkit-slider-runnable-track {
-    height: 4px;
-    border-radius: 2px;
-    background: #ededed;
-  }
-
-  .range::-webkit-slider-thumb {
-    width: 22px;
-    height: 22px;
-    margin-top: -9px;
-    border: 2px solid var(--color-surface);
-    border-radius: 50%;
-    background: var(--color-brand);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-    -webkit-appearance: none;
-  }
-
-  .range:focus {
-    outline: 2px solid var(--color-brand);
-    outline-offset: 2px;
-  }
-
-  .range:disabled {
-    opacity: 0.4;
-  }
-
-  body.editor-mode .range::-webkit-slider-runnable-track {
-    background: #3a3a3c;
-  }
-
-  body.editor-mode .range::-webkit-slider-thumb {
-    border-color: #1c1c1e;
-  }
-
   /* 白色成片弹窗自己的主题变量，避免继承编辑器的深色主题。 */
   .sheet-theme {
     --color-surface: #ffffff;

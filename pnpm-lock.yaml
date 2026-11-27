@@ -319,7 +319,14 @@ importers:
         specifier: 1.3.0
         version: 1.3.0(@types/node@26.6.6)(@vitest/ui@5.0.5)(esbuild@0.28.2)(jiti@1.21.7)(typescript@7.0.2)(yaml@2.9.1)
 
-  packages/portrait-editor: {}
+  packages/portrait-editor:
+    devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
 
 packages:
 

@@ -17,6 +17,9 @@ export default defineConfig(({ command }) => ({
   // lib 模式默认保留 process.env.NODE_ENV；不定义会把 React 开发版打进 zip。
   define: command === "build" ? { "process.env.NODE_ENV": '"production"' } : undefined,
   plugins: [tanstackRouter({ autoCodeSplitting: false, target: "react" }), react()],
+  resolve: {
+    dedupe: ["react"],
+  },
   preview: {
     host: "0.0.0.0",
     port: 5702,

@@ -1,16 +1,8 @@
 import type { PortraitAdjustments } from "@photo-ai/portrait-editor";
 
-import type { TabName } from "./types.ts";
-
-export const PHOTO_TAB_NAMES: readonly TabName[] = ["beauty", "export"];
-
-export const CUTOUT_TAB_NAMES: readonly TabName[] = ["beauty", "background", "export"];
-
-export const TAB_LABELS: Record<TabName, string> = {
-  beauty: "美颜",
-  background: "背景",
-  export: "导出",
-};
+export const PREVIEW_EDGE = 960;
+export const EXPORT_EDGE = 1600;
+export const EXPORT_WIDTH = 1400;
 
 export const BACKGROUNDS = [
   { label: "奶油白", value: "#f4ede2" },

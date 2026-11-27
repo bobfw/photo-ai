@@ -1,6 +1,6 @@
+import { hasTransparentPixels, loadImageElement } from "@photo-ai/portrait-editor";
 import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from "react";
 
-import { hasTransparentPixels, loadImageElement } from "./editor.ts";
 import type { PortraitKind } from "./types.ts";
 
 export interface PortraitSession {

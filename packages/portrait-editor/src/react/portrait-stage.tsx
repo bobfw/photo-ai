@@ -1,9 +1,16 @@
 /* oxlint-disable unicorn/prefer-global-this -- Chrome 61 baseline has no globalThis */
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 
-import { STAGE_CHECKERBOARD } from "../checkerboard.ts";
-import { drawComposition, type EditorState } from "../editor.ts";
+import { drawComposition } from "../pipeline.ts";
+import { usePortraitEditor } from "./editor-context.tsx";
 
 interface GestureSnapshot {
   scale: number;
@@ -19,41 +26,20 @@ interface Point {
   y: number;
 }
 
-interface EditorStageProperties {
-  stateRef: { current: EditorState };
-  preview: HTMLCanvasElement | undefined;
-  ratio: number;
-  background: string;
-  backgroundImage: HTMLImageElement | undefined;
-  light: number;
-  grain: number;
-  texture: number;
-  dof: number;
-  scale: number;
-  redrawKey: number;
-  busy: boolean;
-  busyText: string;
-  canCompose: boolean;
-  onCompositionCommit: () => void;
+interface PortraitStageProperties {
+  interactive: boolean;
+  checkerboard?: CSSProperties;
+  className?: string;
+  children?: ReactNode;
 }
 
-export function EditorStage({
-  stateRef,
-  preview,
-  ratio,
-  background,
-  backgroundImage,
-  light,
-  grain,
-  texture,
-  dof,
-  scale,
-  redrawKey,
-  busy,
-  busyText,
-  canCompose,
-  onCompositionCommit,
-}: EditorStageProperties) {
+export function PortraitStage({
+  interactive,
+  checkerboard,
+  className,
+  children,
+}: PortraitStageProperties) {
+  const { state, stateRef, preview, isBusy, busyText, commitScale } = usePortraitEditor();
   const stageReference = useRef<HTMLDivElement>(null);
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -76,6 +62,7 @@ export function EditorStage({
     const canvas = canvasReference.current;
     if (!stageElement || !canvas) return;
 
+    const ratio = stateRef.current.ratio;
     const maxWidth = Math.min(window.innerWidth - 32, 420);
     const maxHeight = Math.max(220, window.innerHeight * 0.48);
     let width = maxWidth;
@@ -111,7 +98,7 @@ export function EditorStage({
     drawReference.current = drawFrame;
     fitStage();
     drawFrame();
-  }, [preview, ratio, background, backgroundImage, light, grain, texture, dof, scale, redrawKey]);
+  }, [preview, state]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -122,7 +109,7 @@ export function EditorStage({
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [ratio]);
+  }, [state.ratio]);
 
   useEffect(() => {
     return () => {
@@ -175,7 +162,7 @@ export function EditorStage({
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
-    if (!preview || !canCompose) return;
+    if (!preview || !interactive) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -228,53 +215,56 @@ export function EditorStage({
     }
 
     setIsDragging(false);
-    onCompositionCommit();
+    commitScale();
   }
 
   function handlePointerCancel(event: ReactPointerEvent<HTMLCanvasElement>) {
     pointersReference.current.clear();
     setIsDragging(false);
-    onCompositionCommit();
+    commitScale();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   }
 
   return (
-    <div className="sticky top-0 z-20 bg-bg pb-2.5 pt-2">
+    <div className={`bg-background sticky top-0 z-20 pt-2 pb-2.5 ${className ?? ""}`}>
       <div
-        aria-busy={busy}
-        className={`relative mx-auto touch-none overflow-hidden rounded-[16px] border border-line ${
-          canCompose ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
+        aria-busy={isBusy}
+        className={`border-border relative mx-auto touch-none overflow-hidden rounded-[16px] border ${
+          interactive ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
         }`}
         ref={stageReference}
-        style={STAGE_CHECKERBOARD}
+        style={checkerboard}
       >
         <canvas
-          aria-label={canCompose ? "透明底人像与背景预览" : "人像预览"}
+          aria-label={interactive ? "透明底人像与背景预览" : "人像预览"}
           className="block h-full w-full"
-          onPointerCancel={canCompose ? handlePointerCancel : undefined}
-          onPointerDown={canCompose ? handlePointerDown : undefined}
-          onPointerMove={canCompose ? handlePointerMove : undefined}
-          onPointerUp={canCompose ? handlePointerUp : undefined}
+          onPointerCancel={interactive ? handlePointerCancel : undefined}
+          onPointerDown={interactive ? handlePointerDown : undefined}
+          onPointerMove={interactive ? handlePointerMove : undefined}
+          onPointerUp={interactive ? handlePointerUp : undefined}
           ref={canvasReference}
           role="img"
         />
-        {busy ? (
+        {children}
+        {isBusy ? (
           <div
-            className="absolute bottom-0 left-0 right-0 top-0 z-[5] flex flex-col items-center justify-center bg-[rgba(0,0,0,0.68)] text-xs text-[#a1a1a6]"
+            className="absolute top-0 right-0 bottom-0 left-0 z-[5] flex flex-col items-center justify-center bg-[rgba(0,0,0,0.68)] text-xs text-white/70"
             role="status"
           >
             <span
               aria-hidden="true"
-              className="mb-2.5 h-[22px] w-[22px] animate-spin rounded-full border-2 border-line border-t-brand motion-reduce:animate-none"
+              className="border-t-primary mb-2.5 h-[22px] w-[22px] animate-spin rounded-full border-2 border-white/30 motion-reduce:animate-none"
             />
             <span>{busyText}</span>
           </div>
         ) : undefined}
       </div>
-      {canCompose ? (
-        <p className="mb-0 mt-2 min-h-4 text-center text-[11px] text-faint">拖动或双指缩放人像</p>
+      {interactive ? (
+        <p className="text-muted-foreground mt-2 mb-0 min-h-4 text-center text-[11px]">
+          拖动或双指缩放人像
+        </p>
       ) : undefined}
     </div>
   );

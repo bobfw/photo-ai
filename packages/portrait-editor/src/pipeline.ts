@@ -1,13 +1,9 @@
-import {
-  adjustPortraitPixels,
-  decontaminateEdges,
-  drawPortrait,
-  paintPaperGrain,
-  paintPaperTexture,
-  paintStudioLight,
-  type PhotoOffset,
-  type PortraitAdjustments,
-} from "@photo-ai/portrait-editor";
+import { paintPaperGrain, paintPaperTexture, paintStudioLight } from "./backdrop.ts";
+import { adjustPortraitPixels } from "./beauty.ts";
+import type { PortraitAdjustments } from "./beauty.ts";
+import { decontaminateEdges } from "./cutout.ts";
+import { drawPortrait } from "./draw.ts";
+import type { PhotoOffset } from "./types.ts";
 
 export interface EditorState {
   source: HTMLImageElement | undefined;
@@ -23,10 +19,6 @@ export interface EditorState {
   cleanEdges: boolean;
   dof: number;
 }
-
-export const PREVIEW_EDGE = 960;
-export const EXPORT_EDGE = 1600;
-export const EXPORT_WIDTH = 1400;
 
 export function loadImageElement(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
