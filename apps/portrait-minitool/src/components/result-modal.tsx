@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { CHECKERBOARD } from "../checkerboard.ts";
 import { errorMessage } from "../error-message.ts";
 import { publishNote, saveToAlbum } from "../xhs.ts";
 import { FollowGuide } from "./follow-guide.tsx";
@@ -94,7 +95,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
 
   return (
     <div
-      className="modal"
+      className="fixed bottom-0 left-0 right-0 top-0 z-[100] flex items-end justify-center overflow-hidden bg-[rgba(0,0,0,0.6)]"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -102,14 +103,21 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
       <div
         aria-labelledby="result-title"
         aria-modal="true"
-        className="modal-card sheet-theme"
+        className="sheet-theme max-h-[92vh] w-full max-w-[520px] overflow-y-auto rounded-t-[20px] bg-[#ffffff] px-5 pb-[calc(20px_+_var(--safe-bottom))] pt-2 text-[#1a1a1a] shadow-sheet [-webkit-overflow-scrolling:touch] [animation:sheet-up_220ms_cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:animate-none"
         ref={sheetReference}
         role="dialog"
       >
-        <div aria-hidden="true" className="sheet-handle" />
-        <div className="modal-head">
-          <h2 id="result-title">成片</h2>
-          <button aria-label="关闭" className="icon-button" onClick={onClose} type="button">
+        <div aria-hidden="true" className="mx-auto mb-2 h-1 w-9 rounded-full bg-[#e5e5e5]" />
+        <div className="flex items-center justify-between pt-1">
+          <h2 className="m-0 text-lg font-semibold tracking-[-0.01em]" id="result-title">
+            成片
+          </h2>
+          <button
+            aria-label="关闭"
+            className="flex h-11 w-11 items-center justify-center rounded-full border-0 bg-transparent text-[#666666] active:bg-[#f5f5f5] active:text-[#1a1a1a]"
+            onClick={onClose}
+            type="button"
+          >
             <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 24 24" width="20">
               <path
                 d="M6 6l12 12M18 6L6 18"
@@ -121,18 +129,25 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
           </button>
         </div>
 
-        <div className={`result-image ${isTransparent ? "is-transparent" : ""}`}>
-          <img alt="生成的成片" className="result-image-content" src={dataUrl} />
+        <div
+          className="mx-auto mt-3 flex w-fit max-w-full overflow-hidden rounded-[12px] bg-[#f5f5f5]"
+          style={isTransparent ? CHECKERBOARD : undefined}
+        >
+          <img
+            alt="生成的成片"
+            className="block h-auto max-h-[46vh] w-auto max-w-full object-contain"
+            src={dataUrl}
+          />
         </div>
-        <p className="modal-status" role="status">
+        <p className="mb-0 mt-3 min-h-[18px] text-center text-xs text-[#666666]" role="status">
           {status}
         </p>
 
         <FollowGuide compact />
 
-        <div className="modal-actions">
+        <div className="mt-4 flex flex-col">
           <button
-            className="primary-button"
+            className="min-h-12 w-full rounded-full bg-brand-strong px-6 text-sm font-semibold text-inverse transition-transform duration-150 active:scale-[0.98] disabled:opacity-[0.45] motion-reduce:transition-none"
             disabled={isSaving || isPosting}
             onClick={() => {
               void handlePost();
@@ -143,7 +158,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
             发笔记
           </button>
           <button
-            className="secondary-button"
+            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-muted px-5 text-[13px] font-medium text-ink transition-transform duration-150 active:scale-[0.98] disabled:opacity-[0.45] motion-reduce:transition-none"
             disabled={isSaving || isPosting}
             onClick={() => {
               void handleSave();
@@ -153,7 +168,11 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
             保存到相册
           </button>
         </div>
-        <button className="text-button" onClick={onClose} type="button">
+        <button
+          className="mx-auto mt-2 flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px] text-ink-soft active:text-ink"
+          onClick={onClose}
+          type="button"
+        >
           返回修改
         </button>
       </div>

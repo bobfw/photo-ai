@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import { CHECKERBOARD } from "../checkerboard.ts";
+
 interface ImagePreviewProperties {
   isTransparent: boolean;
   onClose: () => void;
@@ -32,7 +34,7 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
     <div
       aria-label="成片预览"
       aria-modal="true"
-      className={`preview ${isTransparent ? "is-transparent" : ""}`}
+      className="fixed bottom-0 left-0 right-0 top-0 z-[200] flex items-center justify-center bg-[rgba(0,0,0,0.94)] px-4 pb-[calc(16px_+_var(--safe-bottom))] pt-[calc(56px_+_var(--safe-top))]"
       onClick={(event) => {
         if (event.target === event.currentTarget) onCloseReference.current();
       }}
@@ -43,10 +45,15 @@ export function ImagePreview({ isTransparent, onClose, src }: ImagePreviewProper
       }}
       role="dialog"
     >
-      <img alt="成片预览" className="preview-image" src={src} />
+      <img
+        alt="成片预览"
+        className="block max-h-full max-w-full object-contain"
+        src={src}
+        style={isTransparent ? CHECKERBOARD : undefined}
+      />
       <button
         aria-label="关闭预览"
-        className="preview-close"
+        className="absolute left-3 top-[calc(12px_+_var(--safe-top))] flex h-11 w-11 items-center justify-center rounded-full border-0 bg-[rgba(255,255,255,0.16)] text-white"
         onClick={() => {
           onCloseReference.current();
         }}

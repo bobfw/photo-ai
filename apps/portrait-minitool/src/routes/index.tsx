@@ -40,7 +40,7 @@ function HomePage() {
   return (
     <>
       <Topbar />
-      <main className="page">
+      <main className="mx-auto max-w-[480px] px-4 pb-[calc(32px_+_var(--safe-bottom))] min-[520px]:px-5">
         <Welcome
           busy={busy}
           error={error}
@@ -53,7 +53,7 @@ function HomePage() {
       </main>
       <input
         accept="image/*"
-        className="visually-hidden"
+        className="sr-only"
         disabled={busy}
         id="photo-input"
         onChange={handleInput}

@@ -1,7 +1,8 @@
 /* oxlint-disable unicorn/prefer-global-this -- Chrome 61 baseline has no globalThis */
 
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
+import { STAGE_CHECKERBOARD } from "../checkerboard.ts";
 import { drawComposition, type EditorState } from "../editor.ts";
 
 interface GestureSnapshot {
@@ -55,6 +56,7 @@ export function EditorStage({
 }: EditorStageProperties) {
   const stageReference = useRef<HTMLDivElement>(null);
   const canvasReference = useRef<HTMLCanvasElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const drawReference = useRef<() => void>(() => {
     // effect 挂载后替换为实际绘制函数。
   });
@@ -179,7 +181,7 @@ export function EditorStage({
     event.currentTarget.setPointerCapture(event.pointerId);
     pointersReference.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     gestureReference.current = snapshotGesture();
-    stageReference.current?.classList.add("is-dragging");
+    setIsDragging(true);
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -225,13 +227,13 @@ export function EditorStage({
       return;
     }
 
-    stageReference.current?.classList.remove("is-dragging");
+    setIsDragging(false);
     onCompositionCommit();
   }
 
   function handlePointerCancel(event: ReactPointerEvent<HTMLCanvasElement>) {
     pointersReference.current.clear();
-    stageReference.current?.classList.remove("is-dragging");
+    setIsDragging(false);
     onCompositionCommit();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -239,14 +241,18 @@ export function EditorStage({
   }
 
   return (
-    <div className="stage-wrap">
+    <div className="sticky top-0 z-20 bg-bg pb-2.5 pt-2">
       <div
         aria-busy={busy}
-        className={canCompose ? "stage can-drag" : "stage"}
+        className={`relative mx-auto touch-none overflow-hidden rounded-[16px] border border-line ${
+          canCompose ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
+        }`}
         ref={stageReference}
+        style={STAGE_CHECKERBOARD}
       >
         <canvas
           aria-label={canCompose ? "透明底人像与背景预览" : "人像预览"}
+          className="block h-full w-full"
           onPointerCancel={canCompose ? handlePointerCancel : undefined}
           onPointerDown={canCompose ? handlePointerDown : undefined}
           onPointerMove={canCompose ? handlePointerMove : undefined}
@@ -255,13 +261,21 @@ export function EditorStage({
           role="img"
         />
         {busy ? (
-          <div className="stage-busy" role="status">
-            <span className="spinner" aria-hidden="true" />
+          <div
+            className="absolute bottom-0 left-0 right-0 top-0 z-[5] flex flex-col items-center justify-center bg-[rgba(0,0,0,0.68)] text-xs text-[#a1a1a6]"
+            role="status"
+          >
+            <span
+              aria-hidden="true"
+              className="mb-2.5 h-[22px] w-[22px] animate-spin rounded-full border-2 border-line border-t-brand motion-reduce:animate-none"
+            />
             <span>{busyText}</span>
           </div>
         ) : undefined}
       </div>
-      {canCompose ? <p className="stage-hint">拖动或双指缩放人像</p> : undefined}
+      {canCompose ? (
+        <p className="mb-0 mt-2 min-h-4 text-center text-[11px] text-faint">拖动或双指缩放人像</p>
+      ) : undefined}
     </div>
   );
 }

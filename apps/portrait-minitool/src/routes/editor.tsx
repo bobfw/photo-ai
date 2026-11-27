@@ -4,6 +4,7 @@ import type { PortraitAdjustments } from "@photo-ai/portrait-editor";
 import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 
+import { CHECKERBOARD } from "../checkerboard.ts";
 import { EditorStage } from "../components/editor-stage.tsx";
 import { ImagePreview } from "../components/image-preview.tsx";
 import { RangeControl } from "../components/range-control.tsx";
@@ -361,12 +362,18 @@ function EditorPage({ session }: { session: PortraitSession }) {
           }}
           value={Math.round(adjustments.warmth * 50)}
         />
-        <div className="row">
-          <button className="text-button" onClick={resetBeauty} type="button">
+        <div className="flex min-w-0 items-center">
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px] text-ink-soft active:text-ink"
+            onClick={resetBeauty}
+            type="button"
+          >
             重置美颜
           </button>
         </div>
-        <p className="hint">磨皮只作用于肤色区域，保留五官细节。</p>
+        <p className="mb-0 mt-3.5 text-[11px] leading-[1.6] text-faint">
+          磨皮只作用于肤色区域，保留五官细节。
+        </p>
       </>
     );
   }
@@ -374,23 +381,26 @@ function EditorPage({ session }: { session: PortraitSession }) {
   function renderBackgroundPanel() {
     return (
       <>
-        <p className="control-title">背景颜色</p>
-        <p className="control-note">只对透明底人像生效，背景会填在人像的镂空处。</p>
+        <p className="m-0 text-sm font-semibold">背景颜色</p>
+        <p className="mb-0 mt-1 text-[11px] leading-[1.5] text-faint">
+          只对透明底人像生效，背景会填在人像的镂空处。
+        </p>
         {session.hasAlpha ? undefined : (
-          <p className="control-note is-warning">
+          <p className="mb-0 mt-2 text-[11px] leading-[1.5] text-brand-strong">
             这张图没有透明区域，背景不会透出；换一张透明底照片才能看到背景。
           </p>
         )}
-        <div className="swatches" id="color-list">
+        <div
+          className="-mx-1 mt-1 flex overflow-x-auto py-1 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+          id="color-list"
+        >
           {BACKGROUNDS.map((preset) => {
             const isActive = backgroundImage === undefined && background === preset.value;
             return (
               <button
                 aria-label={`背景：${preset.label}`}
                 aria-pressed={isActive}
-                className={`swatch ${isActive ? "is-active" : ""} ${
-                  preset.value === "transparent" ? "is-transparent" : ""
-                }`}
+                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full border-0 bg-transparent p-0"
                 key={preset.value}
                 onClick={() => {
                   handleBackground(preset.value);
@@ -398,18 +408,27 @@ function EditorPage({ session }: { session: PortraitSession }) {
                 type="button"
               >
                 <span
+                  className={`h-[26px] w-[26px] rounded-full border border-[#3a3a3c] ${
+                    isActive ? "outline outline-2 outline-offset-2 outline-brand" : ""
+                  }`}
                   style={
-                    preset.value === "transparent" ? undefined : { backgroundColor: preset.value }
+                    preset.value === "transparent"
+                      ? CHECKERBOARD
+                      : { backgroundColor: preset.value }
                   }
                 />
               </button>
             );
           })}
         </div>
-        <div className="row row-between">
-          <label className="color-picker" htmlFor="custom-color">
+        <div className="flex min-w-0 items-center justify-between">
+          <label
+            className="inline-flex min-h-11 items-center text-xs text-ink-soft"
+            htmlFor="custom-color"
+          >
             <input
               aria-label="自定义背景颜色"
+              className="m-0 h-11 w-11 rounded-full border border-line bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-1 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
               id="custom-color"
               onChange={(event) => {
                 handleBackground(event.target.value);
@@ -417,23 +436,30 @@ function EditorPage({ session }: { session: PortraitSession }) {
               type="color"
               value={background === "transparent" ? "#f4ede2" : background}
             />
-            <span>自定义颜色</span>
+            <span className="ml-2">自定义颜色</span>
           </label>
           {backgroundImage ? (
-            <div className="row">
+            <div className="flex min-w-0 items-center">
               <button
                 aria-label="更换背景图"
-                className="background-thumb"
+                className="ml-2 h-11 w-11 shrink-0 rounded-lg border border-line bg-muted bg-cover bg-center"
                 onClick={() => backgroundInputReference.current?.click()}
                 style={{ backgroundImage: `url("${backgroundImage.src}")` }}
                 type="button"
               />
-              <button className="text-button" onClick={clearBackgroundImage} type="button">
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px] text-ink-soft active:text-ink"
+                onClick={clearBackgroundImage}
+                type="button"
+              >
                 移除
               </button>
             </div>
           ) : (
-            <label className="secondary-button" htmlFor="background-input">
+            <label
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-muted px-5 text-[13px] font-medium text-ink transition-transform duration-150 active:scale-[0.98]"
+              htmlFor="background-input"
+            >
               上传背景图
             </label>
           )}
@@ -485,20 +511,31 @@ function EditorPage({ session }: { session: PortraitSession }) {
           onChange={handleScale}
           value={scale}
         />
-        <div className="row">
-          <button className="text-button" onClick={resetComposition} type="button">
+        <div className="flex min-w-0 items-center">
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px] text-ink-soft active:text-ink"
+            onClick={resetComposition}
+            type="button"
+          >
             复位构图
           </button>
         </div>
 
-        <p className="control-title">画面比例</p>
-        <div className="segmented" id="ratio-list">
+        <p className="m-0 text-sm font-semibold">画面比例</p>
+        <div
+          className="relative mt-2 flex space-x-1.5 before:absolute before:left-0 before:right-0 before:top-1/2 before:h-8 before:-translate-y-1/2 before:rounded-full before:bg-muted before:content-['']"
+          id="ratio-list"
+        >
           {RATIOS.map((item) => {
             const isActive = Math.abs(ratio - item.value) < 0.001;
             return (
               <button
                 aria-pressed={isActive}
-                className={`segment ${isActive ? "is-active" : ""}`}
+                className={`relative z-0 flex h-11 flex-1 items-center justify-center rounded-full border-0 bg-transparent p-0 text-xs transition-colors before:absolute before:left-0.5 before:right-0.5 before:top-1/2 before:-z-10 before:h-8 before:-translate-y-1/2 before:rounded-full before:content-[''] active:scale-[0.98] disabled:opacity-40 motion-reduce:transition-none ${
+                  isActive
+                    ? "font-semibold text-inverse before:bg-brand-strong"
+                    : "font-medium text-ink-soft"
+                }`}
                 key={item.label}
                 onClick={() => {
                   handleRatio(item.value);
@@ -510,7 +547,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
             );
           })}
         </div>
-        <p className="hint">
+        <p className="mb-0 mt-3.5 text-[11px] leading-[1.6] text-faint">
           用「人像大小」缩小人像能露出更多背景；光影/颗粒/纹理仅纯色背景，景深仅背景图。
         </p>
       </>
@@ -520,17 +557,17 @@ function EditorPage({ session }: { session: PortraitSession }) {
   function renderExportPanel() {
     return (
       <>
-        <p className="control-title">成片</p>
+        <p className="m-0 text-sm font-semibold">成片</p>
         <div className="mt-3.5 flex">
           <button
-            className="secondary-button min-h-12 flex-1"
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-muted px-5 text-[13px] font-medium text-ink transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none"
             onClick={handlePreview}
             type="button"
           >
             预览
           </button>
           <button
-            className="primary-button ml-2 flex-1"
+            className="ml-2 min-h-12 flex-1 rounded-full bg-brand-strong px-6 text-sm font-semibold text-inverse transition-transform duration-150 active:scale-[0.98] disabled:opacity-[0.45] motion-reduce:transition-none"
             disabled={isExporting}
             onClick={() => {
               void handleExport();
@@ -540,7 +577,9 @@ function EditorPage({ session }: { session: PortraitSession }) {
             {isExporting ? "生成中…" : "生成成片"}
           </button>
         </div>
-        <p className="hint">照片只在本机处理，不会上传。</p>
+        <p className="mb-0 mt-3.5 text-[11px] leading-[1.6] text-faint">
+          照片只在本机处理，不会上传。
+        </p>
       </>
     );
   }
@@ -552,7 +591,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
       <Topbar
         action={
           <button
-            className="ghost-button"
+            className="min-h-11 rounded-full bg-muted px-4 text-[13px] font-semibold text-ink transition-transform duration-150 active:scale-[0.97] motion-reduce:transition-none"
             onClick={() => {
               void navigate({ to: "/" });
             }}
@@ -563,8 +602,8 @@ function EditorPage({ session }: { session: PortraitSession }) {
         }
       />
 
-      <main className="page">
-        <section className="editor">
+      <main className="mx-auto max-w-[480px] px-4 pb-[calc(32px_+_var(--safe-bottom))] min-[520px]:px-5">
+        <section className="pt-1">
           <EditorStage
             background={background}
             backgroundImage={backgroundImage}
@@ -583,29 +622,36 @@ function EditorPage({ session }: { session: PortraitSession }) {
             texture={texture}
           />
 
-          <div aria-label="编辑步骤" className="tabs" role="tablist">
-            {tabNames.map((tab) => (
-              <button
-                aria-controls={`panel-${tab}`}
-                aria-selected={activeTab === tab}
-                className={`tab ${activeTab === tab ? "is-active" : ""}`}
-                id={`tab-${tab}`}
-                key={tab}
-                onClick={() => {
-                  handleTabChange(tab);
-                }}
-                role="tab"
-                type="button"
-              >
-                {TAB_LABELS[tab]}
-              </button>
-            ))}
+          <div aria-label="编辑步骤" className="mt-3 flex border-b border-line" role="tablist">
+            {tabNames.map((tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  aria-controls={`panel-${tab}`}
+                  aria-selected={isActive}
+                  className={`relative h-11 flex-1 border-0 bg-transparent text-sm transition-colors active:opacity-70 motion-reduce:transition-none ${
+                    isActive
+                      ? "font-semibold text-ink after:absolute after:bottom-0 after:left-1/2 after:h-[3px] after:w-5 after:-translate-x-1/2 after:rounded-[2px] after:bg-brand after:content-['']"
+                      : "font-medium text-ink-soft"
+                  }`}
+                  id={`tab-${tab}`}
+                  key={tab}
+                  onClick={() => {
+                    handleTabChange(tab);
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  {TAB_LABELS[tab]}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="panels">
+          <div className="mt-3 rounded-[16px] border border-line bg-surface p-4">
             <section
               aria-labelledby="tab-beauty"
-              className="panel"
+              className="min-w-0"
               hidden={activeTab !== "beauty"}
               id="panel-beauty"
               role="tabpanel"
@@ -615,7 +661,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
             {isCutout ? (
               <section
                 aria-labelledby="tab-background"
-                className="panel"
+                className="min-w-0"
                 hidden={activeTab !== "background"}
                 id="panel-background"
                 role="tabpanel"
@@ -625,7 +671,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
             ) : undefined}
             <section
               aria-labelledby="tab-export"
-              className="panel"
+              className="min-w-0"
               hidden={activeTab !== "export"}
               id="panel-export"
               role="tabpanel"
@@ -638,7 +684,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
 
       <input
         accept="image/*"
-        className="visually-hidden"
+        className="sr-only"
         id="background-input"
         onChange={handleBackgroundInput}
         ref={backgroundInputReference}
@@ -647,7 +693,9 @@ function EditorPage({ session }: { session: PortraitSession }) {
 
       {toast ? (
         <div
-          className={`toast ${toast.isError ? "is-error" : ""}`}
+          className={`fixed bottom-[calc(20px_+_var(--safe-bottom))] left-1/2 z-[200] max-w-[calc(100vw_-_32px)] -translate-x-1/2 rounded-full px-4 py-2.5 text-center text-xs text-inverse shadow-[0_8px_24px_rgba(0,0,0,0.18)] ${
+            toast.isError ? "bg-brand-strong" : "bg-[#1a1a1a]"
+          }`}
           role={toast.isError ? "alert" : "status"}
         >
           {toast.message}
