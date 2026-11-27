@@ -42,6 +42,7 @@ const minitoolAssets = {
       path.resolve(root, "src/polyfills.js"),
       path.resolve(distribution, "assets/polyfills.js"),
     );
+    copyFileSync(path.resolve(root, "icon.png"), path.resolve(distribution, "assets/icon.png"));
 
     execFileSync(
       path.resolve(root, "node_modules/.bin/tailwindcss"),
