@@ -40,6 +40,17 @@ export function PortraitStage({
   children,
 }: PortraitStageProperties) {
   const { state, stateRef, preview, isBusy, busyText, commitScale } = usePortraitEditor();
+  // 预览框底色跟画面边缘一致，避免 canvas 亚像素缝露出浅色棋盘格，看起来像白边。
+  let frameBackground: CSSProperties | undefined = checkerboard;
+  if (state.backgroundImage) {
+    frameBackground = {
+      backgroundImage: `url("${state.backgroundImage.src}")`,
+      backgroundPosition: "center",
+      backgroundSize: "cover",
+    };
+  } else if (state.background !== "transparent") {
+    frameBackground = { backgroundColor: state.background };
+  }
   const stageReference = useRef<HTMLDivElement>(null);
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -235,7 +246,7 @@ export function PortraitStage({
           interactive ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
         }`}
         ref={stageReference}
-        style={checkerboard}
+        style={frameBackground}
       >
         <canvas
           aria-label={interactive ? "透明底人像与背景预览" : "人像预览"}

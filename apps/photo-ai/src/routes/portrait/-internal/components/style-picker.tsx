@@ -1,6 +1,7 @@
 import { Briefcase, Camera, Shirt, User } from "lucide-react";
 import { useState } from "react";
 
+import { portraitLooks } from "#agents/portrait/prompts";
 import { cn } from "#lib/utils";
 import { Button } from "#ui/button";
 import {
@@ -14,7 +15,7 @@ import {
   DrawerTrigger,
 } from "#ui/drawer";
 
-import { PORTRAIT_COMPOSITIONS, PORTRAIT_POSES, PORTRAIT_STYLES } from "../services/styles.ts";
+import { PORTRAIT_COMPOSITIONS, PORTRAIT_POSES } from "../services/styles.ts";
 
 export interface StyleChoice {
   style: string;
@@ -94,7 +95,7 @@ export function StylePicker({
           <div className="space-y-2">
             <p className="text-sm font-semibold">风格</p>
             <div className="grid grid-cols-2 gap-2.5">
-              {PORTRAIT_STYLES.map((style) => {
+              {portraitLooks.map((style) => {
                 const Icon = STYLE_ICONS[style.key];
                 const isSelected = style.key === selectedKey;
                 return (
