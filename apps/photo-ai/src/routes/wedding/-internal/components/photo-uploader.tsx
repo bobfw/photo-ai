@@ -17,7 +17,7 @@ export async function fileToDataUrl(file: File): Promise<string> {
 
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return canvas.toDataURL("image/png");
 }
 
 interface PhotoUploaderProperties {

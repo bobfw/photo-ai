@@ -108,10 +108,11 @@ function EditorPage({ session }: { session: PortraitSession }) {
   const [busy, setBusy] = useState(false);
   const [busyText, setBusyText] = useState("正在处理人像…");
   const [toast, setToast] = useState<ToastState>();
-  const [resultDataUrl, setResultDataUrl] = useState("");
-  const [previewDataUrl, setPreviewDataUrl] = useState("");
-  const [isTransparentResult, setIsTransparentResult] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [result, setResult] = useState<{ blob: Blob; isTransparent: boolean; url: string }>();
   const [isExporting, setIsExporting] = useState(false);
+  const previewUrlReference = useRef("");
+  const resultUrlReference = useRef("");
 
   const showToast = useCallback((message: string, isError = false) => {
     setToast({ isError, message });
@@ -149,6 +150,13 @@ function EditorPage({ session }: { session: PortraitSession }) {
     document.body.classList.add("editor-mode");
     return () => {
       document.body.classList.remove("editor-mode");
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlReference.current) URL.revokeObjectURL(previewUrlReference.current);
+      if (resultUrlReference.current) URL.revokeObjectURL(resultUrlReference.current);
     };
   }, []);
 
@@ -259,18 +267,43 @@ function EditorPage({ session }: { session: PortraitSession }) {
     setActiveTab(tab);
   }
 
-  function handlePreview() {
+  async function renderComposedImage() {
+    const state = stateReference.current;
+    const height = Math.round(EXPORT_WIDTH / state.ratio);
+    const longEdge = Math.ceil(EXPORT_WIDTH / Math.min(state.ratio, 1));
+    const portraitEdge = isCutout ? EXPORT_EDGE : Math.min(3200, Math.max(EXPORT_EDGE, longEdge));
+    const portrait = buildPortrait(state, portraitEdge);
+    const canvas = compose(state, portrait, EXPORT_WIDTH, height);
+    const hasAlpha = state.backgroundImage === undefined && state.background === "transparent";
+    // 导出和预览一律 PNG，不做有损压缩；展示用 Blob URL，不走 base64。
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((value) => {
+        if (value) resolve(value);
+        else reject(new Error("无法生成图片"));
+      }, "image/png");
+    });
+    return { blob, isTransparent: hasAlpha };
+  }
+
+  async function handlePreview() {
+    if (!stateReference.current.source) return;
+
+    setBusy(true);
+    setBusyText("正在生成预览…");
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 40);
+    });
+
     try {
-      const state = stateReference.current;
-      const width = Math.min(EXPORT_WIDTH, PREVIEW_EDGE);
-      const height = Math.round(width / state.ratio);
-      const portrait = preview ?? buildPortrait(state, PREVIEW_EDGE);
-      const canvas = compose(state, portrait, width, height);
-      const isTransparentPreview =
-        state.backgroundImage === undefined && state.background === "transparent";
-      setPreviewDataUrl(canvas.toDataURL(isTransparentPreview ? "image/png" : "image/jpeg", 0.92));
+      const composed = await renderComposedImage();
+      if (previewUrlReference.current) URL.revokeObjectURL(previewUrlReference.current);
+      const url = URL.createObjectURL(composed.blob);
+      previewUrlReference.current = url;
+      setPreviewUrl(url);
     } catch (error) {
       showToast(errorMessage(error), true);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -285,17 +318,11 @@ function EditorPage({ session }: { session: PortraitSession }) {
     });
 
     try {
-      const state = stateReference.current;
-      const exportHeight = Math.round(EXPORT_WIDTH / state.ratio);
-      const exportLongEdge = Math.ceil(EXPORT_WIDTH / Math.min(state.ratio, 1));
-      const portraitEdge = isCutout
-        ? EXPORT_EDGE
-        : Math.min(3200, Math.max(EXPORT_EDGE, exportLongEdge));
-      const exportPortrait = buildPortrait(state, portraitEdge);
-      const canvas = compose(state, exportPortrait, EXPORT_WIDTH, exportHeight);
-      const hasAlpha = state.backgroundImage === undefined && state.background === "transparent";
-      setResultDataUrl(canvas.toDataURL(hasAlpha ? "image/png" : "image/jpeg", 0.92));
-      setIsTransparentResult(hasAlpha);
+      const composed = await renderComposedImage();
+      if (resultUrlReference.current) URL.revokeObjectURL(resultUrlReference.current);
+      const url = URL.createObjectURL(composed.blob);
+      resultUrlReference.current = url;
+      setResult({ blob: composed.blob, isTransparent: composed.isTransparent, url });
     } catch (error) {
       showToast(errorMessage(error), true);
     } finally {
@@ -304,9 +331,20 @@ function EditorPage({ session }: { session: PortraitSession }) {
     }
   }
 
+  function closePreview() {
+    if (previewUrlReference.current) {
+      URL.revokeObjectURL(previewUrlReference.current);
+      previewUrlReference.current = "";
+    }
+    setPreviewUrl("");
+  }
+
   function closeResult() {
-    setResultDataUrl("");
-    setIsTransparentResult(false);
+    if (resultUrlReference.current) {
+      URL.revokeObjectURL(resultUrlReference.current);
+      resultUrlReference.current = "";
+    }
+    setResult(undefined);
   }
 
   function renderBeautyPanel() {
@@ -560,15 +598,18 @@ function EditorPage({ session }: { session: PortraitSession }) {
         <p className="m-0 text-sm font-semibold">成片</p>
         <div className="mt-3.5 flex">
           <button
-            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-muted px-5 text-[13px] font-medium text-ink transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none"
-            onClick={handlePreview}
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-muted px-5 text-[13px] font-medium text-ink transition-transform duration-150 active:scale-[0.98] disabled:opacity-[0.45] motion-reduce:transition-none"
+            disabled={busy || isExporting}
+            onClick={() => {
+              void handlePreview();
+            }}
             type="button"
           >
             预览
           </button>
           <button
             className="ml-2 min-h-12 flex-1 rounded-full bg-brand-strong px-6 text-sm font-semibold text-inverse transition-transform duration-150 active:scale-[0.98] disabled:opacity-[0.45] motion-reduce:transition-none"
-            disabled={isExporting}
+            disabled={busy || isExporting}
             onClick={() => {
               void handleExport();
             }}
@@ -702,21 +743,20 @@ function EditorPage({ session }: { session: PortraitSession }) {
         </div>
       ) : undefined}
 
-      {previewDataUrl ? (
+      {previewUrl ? (
         <ImagePreview
           isTransparent={backgroundImage === undefined && background === "transparent"}
-          onClose={() => {
-            setPreviewDataUrl("");
-          }}
-          src={previewDataUrl}
+          onClose={closePreview}
+          src={previewUrl}
         />
       ) : undefined}
 
-      {resultDataUrl ? (
+      {result ? (
         <ResultModal
-          dataUrl={resultDataUrl}
-          isTransparent={isTransparentResult}
+          blob={result.blob}
+          isTransparent={result.isTransparent}
           onClose={closeResult}
+          src={result.url}
         />
       ) : undefined}
     </>

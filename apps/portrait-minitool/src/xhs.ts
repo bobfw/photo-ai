@@ -19,18 +19,34 @@ declare global {
   }
 }
 
-async function toFilePath(dataUrl: string) {
-  const result = await window.xhs.miniTool.writeTempFile({ data: dataUrl });
+// 只有容器接口需要字符串，才在这里把 Blob 转成 data URL。
+function readAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("图片读取失败"));
+    });
+    reader.addEventListener("error", () => {
+      reject(new Error("图片读取失败"));
+    });
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function toFilePath(blob: Blob) {
+  const data = await readAsDataUrl(blob);
+  const result = await window.xhs.miniTool.writeTempFile({ data });
   return result.filePath;
 }
 
-export async function saveToAlbum(dataUrl: string) {
-  const filePath = await toFilePath(dataUrl);
+export async function saveToAlbum(blob: Blob) {
+  const filePath = await toFilePath(blob);
   await window.xhs.miniTool.saveImageToPhotosAlbum({ filePath });
 }
 
-export async function publishNote(dataUrl: string) {
-  const filePath = await toFilePath(dataUrl);
+export async function publishNote(blob: Blob) {
+  const filePath = await toFilePath(blob);
   await window.xhs.miniTool.postNote({
     pageType: "photo_publish",
     title: "我的人像写真",

@@ -6,12 +6,13 @@ import { publishNote, saveToAlbum } from "../xhs.ts";
 import { FollowGuide } from "./follow-guide.tsx";
 
 interface ResultModalProperties {
-  dataUrl: string;
+  blob: Blob;
   isTransparent: boolean;
   onClose: () => void;
+  src: string;
 }
 
-export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProperties) {
+export function ResultModal({ blob, isTransparent, onClose, src }: ResultModalProperties) {
   const primaryButtonReference = useRef<HTMLButtonElement>(null);
   const sheetReference = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState(isTransparent ? "已生成透明底成片" : "已生成高清成片");
@@ -31,7 +32,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
 
   useEffect(() => {
     setStatus(isTransparent ? "已生成透明底成片" : "已生成高清成片");
-  }, [dataUrl, isTransparent]);
+  }, [isTransparent, src]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,7 +72,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
     setIsPosting(true);
     setStatus("正在打开发布页…");
     try {
-      await publishNote(dataUrl);
+      await publishNote(blob);
       setStatus("已打开发布页");
     } catch (error) {
       setStatus(errorMessage(error));
@@ -84,7 +85,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
     setIsSaving(true);
     setStatus("正在保存…");
     try {
-      await saveToAlbum(dataUrl);
+      await saveToAlbum(blob);
       setStatus("已保存到相册");
     } catch (error) {
       setStatus(errorMessage(error));
@@ -136,7 +137,7 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
           <img
             alt="生成的成片"
             className="block h-auto max-h-[46vh] w-auto max-w-full object-contain"
-            src={dataUrl}
+            src={src}
           />
         </div>
         <p className="mb-0 mt-3 min-h-[18px] text-center text-xs text-[#666666]" role="status">
