@@ -6,12 +6,13 @@ import {
 } from "@photo-ai/portrait-editor/react";
 import { useState } from "react";
 
-import { CHECKERBOARD } from "../../../-internal/components/checkerboard.ts";
+import { SourceSync } from "#components/source-sync";
+import { CHECKERBOARD } from "#lib/checkerboard";
+
 import { IMAGE_RATIOS, type ImageRatio } from "../../../-internal/services/poses.ts";
 import { STICKERS } from "./constants.ts";
 import { WeddingEditorProvider } from "./context.tsx";
 import { WEDDING_EDITOR_PLUGINS } from "./plugins.ts";
-import { SourceSync } from "./source-sync.tsx";
 import { createWeddingEditorState } from "./state.ts";
 
 const RATIOS = IMAGE_RATIOS.map((item) => ({

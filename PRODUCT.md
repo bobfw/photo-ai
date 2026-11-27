@@ -26,6 +26,7 @@ A voucher-gated AI studio for wedding photos: the customer picks a pose from a c
 
 - Purchase happens off-app: the customer buys a voucher in a shop on 小红书, 淘宝, 闲鱼, or 抖音, receives a UUID code, and enters it on the site.
 - Customer flow: enter code and accept the user agreement → upload two frontal photos → pick a series and pose → generate → optionally adjust with a text prompt or regenerate from the original photos → choose the output ratio, a background color, add stickers, save the composed PNG from the browser. Each new pose generation consumes one image from the voucher's fixed quota; prompt adjustments and regeneration use the image's modification budget instead.
+- Portrait flow: enter a portrait voucher code → upload one frontal photo → pick one of four styles (商务正装、商务休闲、白衬衫、高级感肖像) → generate a transparent upper-body portrait → choose a background color and a 3:4 or 1:1 ratio in the same editor, then save. Prompt adjustments consume the image's modification budget; there is no regenerate action in this flow.
 - The studio route rejects a valid code until the agreement has been accepted. Acceptance records the time, IP, country, and user agent on the voucher; every generation or regeneration start is appended to a permanent log with the voucher, kind, series, pose, ratio, and request metadata for dispute handling.
 - Background color and stickers are composed entirely in the browser on a canvas. Prompt-based adjustments and full regeneration happen on the server and replace the current transparent PNG while keeping earlier versions selectable as history; both consume the per-image modification count configured when the voucher is created, not photo quota.
 - If the couple does not look like themselves, the UI recommends regenerating from the original photos instead of prompt editing.
@@ -41,7 +42,7 @@ A voucher-gated AI studio for wedding photos: the customer picks a pose from a c
 - Output is one portrait per pose at 2:3, generated with a prompt that prioritizes identity fidelity, then photographic realism (real skin, fabric, light; no text, watermarks, or logos), on a true transparent background. The background composer can export the final image at 2:3 or 3:4.
 - The transparent PNG stays on Ark's URL and is read through the CORS proxy `proxy.yumus.cn` so the browser canvas can compose and export it without cross-origin taint.
 - Generated image records expire after 24 hours, as does the Ark URL. Uploaded face photos are not persisted.
-- Portrait (写真) vouchers exist as a type in the admin console, but the portrait generation flow is not wired up; the console states this.
+- Portrait vouchers use the `portrait` type and the second studio flow: one frontal photo plus a style, output as a transparent upper-body PNG at 3:4 generated with the same identity-first prompt rules; the editor composes backgrounds at 3:4 or 1:1.
 - The interface is Simplified Chinese only. There is no account system or in-app payment.
 - Undecided: pricing and when the portrait flow launches.
 

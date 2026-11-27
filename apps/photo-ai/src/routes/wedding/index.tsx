@@ -3,13 +3,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 
+import { CenteredMessage } from "#components/centered-message";
+import { PhotoUploader } from "#components/photo-uploader";
+import { RetryImage } from "#components/retry-image";
+import { CHECKERBOARD } from "#lib/checkerboard";
 import { toast } from "#ui/toast";
 
-import { CenteredMessage } from "./-internal/components/centered-message.tsx";
-import { CHECKERBOARD } from "./-internal/components/checkerboard.ts";
-import { PhotoUploader } from "./-internal/components/photo-uploader.tsx";
 import { PosePicker, type PoseChoice } from "./-internal/components/pose-picker.tsx";
-import { RetryImage } from "./-internal/components/retry-image.tsx";
 import { useWeddingPhotos } from "./-internal/components/wedding-photos.tsx";
 import { findPoseSeries } from "./-internal/services/poses.ts";
 import { generatePoseImage, loadWeddingState } from "./-internal/services/wedding.ts";

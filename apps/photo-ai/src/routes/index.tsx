@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, ChevronRight, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Button } from "#ui/button";
 
@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   component: WelcomePage,
 });
 
-const STEPS = ["上传照片", "选姿态", "保存成片"];
+const STEPS = ["上传照片", "选风格", "保存成片"];
 
 function WelcomePage() {
   return (
@@ -23,12 +23,13 @@ function WelcomePage() {
 
         <section className="flex flex-1 flex-col justify-center py-12">
           <h1 className="text-[40px] leading-[1.15] font-bold tracking-tight">
-            一张合照，
+            上传照片，
             <br />
             <span className="text-primary">拍出写真大片</span>
           </h1>
           <p className="text-muted-foreground mt-4 text-sm leading-6">
-            上传照片，选喜欢的风格，AI 帮你拍出写真大片。还能换背景、加贴纸，成品直接保存到相册。
+            婚纱照、形象照，选喜欢的风格，AI
+            帮你拍出写真大片。还能换背景、调比例，成品直接保存到相册。
           </p>
 
           <ol
@@ -54,7 +55,7 @@ function WelcomePage() {
           </div>
         </section>
 
-        <div className="pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="space-y-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <Button
             className="w-full"
             nativeButton={false}
@@ -62,9 +63,19 @@ function WelcomePage() {
             size="cta"
           >
             <Sparkles aria-hidden />
-            开始制作婚纱照
+            婚纱照 · 双人合影
           </Button>
-          <p className="text-muted-foreground mt-3 text-center text-xs">
+          <Button
+            className="w-full"
+            nativeButton={false}
+            render={<Link to="/portrait/voucher" />}
+            size="cta"
+            variant="outline"
+          >
+            <Camera aria-hidden />
+            形象照 · 单人职业照
+          </Button>
+          <p className="text-muted-foreground pt-1 text-center text-xs">
             凭证可在网店购买 · 可生成张数以商品说明为准
           </p>
         </div>

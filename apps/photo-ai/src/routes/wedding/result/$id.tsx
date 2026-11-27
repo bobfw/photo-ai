@@ -4,12 +4,14 @@ import { ArrowLeft, History, Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 
+import { CenteredMessage } from "#components/centered-message";
+import { RetryImage } from "#components/retry-image";
+import { useImageSource } from "#hooks/use-image-source";
+import { proxyImageUrl } from "#lib/image-proxy";
 import { cn } from "#lib/utils";
 import { Button } from "#ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 
-import { CenteredMessage } from "../-internal/components/centered-message.tsx";
-import { RetryImage } from "../-internal/components/retry-image.tsx";
 import { useWeddingPhotos } from "../-internal/components/wedding-photos.tsx";
 import { findPoseSeries, type ImageRatio } from "../-internal/services/poses.ts";
 import {
@@ -17,8 +19,6 @@ import {
   loadWeddingState,
   regenerateWedding,
 } from "../-internal/services/wedding.ts";
-import { proxyImageUrl } from "./-internal/editor/constants.ts";
-import { useWeddingSource } from "./-internal/editor/use-source.ts";
 import { WeddingEditor } from "./-internal/editor/wedding-editor.tsx";
 
 /* oxlint-disable typescript/only-throw-error -- TanStack Router 的 redirect 必须 throw */
@@ -49,7 +49,7 @@ function ResultPage() {
   const seriesTitle = findPoseSeries(image.series)?.title ?? image.series;
   // 展示和 canvas 都走 CORS 代理；Ark 没有 CORS 头，canvas 无法直接导出
   const rawImageSource = proxyImageUrl(image.sourceUrl ?? image.url);
-  const { image: source, error: sourceError, retry } = useWeddingSource(rawImageSource);
+  const { image: source, error: sourceError, retry } = useImageSource(rawImageSource);
   const initialRatio: ImageRatio = image.ratio === "3:4" ? "3:4" : "2:3";
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");

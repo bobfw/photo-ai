@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 
 const MAX_EDGE = 2048;
 
-export async function fileToDataUrl(file: File): Promise<string> {
+async function fileToDataUrl(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("请选择图片文件");
 
   const bitmap = await createImageBitmap(file);
@@ -100,7 +100,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
           </span>
           <span className="text-sm font-semibold">{isProcessing ? "正在处理" : "点击上传"}</span>
           <span className="text-muted-foreground text-xs">
-            {isProcessing ? "请稍候" : "正脸 · 清晰"}
+            {isProcessing ? "请稍候" : "清晰 · 单人"}
           </span>
         </button>
       )}

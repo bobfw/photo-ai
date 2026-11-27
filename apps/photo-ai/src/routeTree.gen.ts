@@ -12,11 +12,15 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortraitRouteRouteImport } from './routes/portrait/route'
 import { Route as WeddingRouteRouteImport } from './routes/wedding/route'
 import { Route as AdminNeed_authRouteRouteImport } from './routes/admin/_need_auth/route'
+import { Route as PortraitIndexRouteImport } from './routes/portrait/index'
+import { Route as PortraitVoucherRouteImport } from './routes/portrait/voucher'
 import { Route as TermsIndexRouteImport } from './routes/terms/index'
 import { Route as WeddingIndexRouteImport } from './routes/wedding/index'
 import { Route as WeddingVoucherRouteImport } from './routes/wedding/voucher'
+import { Route as PortraitResultIdRouteImport } from './routes/portrait/result/$id'
 import { Route as WeddingResultIdRouteImport } from './routes/wedding/result/$id'
 
 const AdminRouteLazyRouteImport = createFileRoute('/admin')()
@@ -34,6 +38,11 @@ const AdminRouteLazyRoute = AdminRouteLazyRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/admin/route.lazy').then((d) => d.Route))
+const PortraitRouteRoute = PortraitRouteRouteImport.update({
+  id: '/portrait',
+  path: '/portrait',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WeddingRouteRoute = WeddingRouteRouteImport.update({
   id: '/wedding',
   path: '/wedding',
@@ -52,6 +61,16 @@ const AdminLoginRouteLazyRoute = AdminLoginRouteLazyRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/login/route.lazy').then((d) => d.Route),
 )
+const PortraitIndexRoute = PortraitIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortraitRouteRoute,
+} as any)
+const PortraitVoucherRoute = PortraitVoucherRouteImport.update({
+  id: '/voucher',
+  path: '/voucher',
+  getParentRoute: () => PortraitRouteRoute,
+} as any)
 const TermsIndexRoute = TermsIndexRouteImport.update({
   id: '/terms/',
   path: '/terms/',
@@ -74,6 +93,11 @@ const AdminNeed_authIndexLazyRoute = AdminNeed_authIndexLazyRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/_need_auth/index.lazy').then((d) => d.Route),
 )
+const PortraitResultIdRoute = PortraitResultIdRouteImport.update({
+  id: '/result/$id',
+  path: '/result/$id',
+  getParentRoute: () => PortraitRouteRoute,
+} as any)
 const WeddingResultIdRoute = WeddingResultIdRouteImport.update({
   id: '/result/$id',
   path: '/result/$id',
@@ -82,34 +106,45 @@ const WeddingResultIdRoute = WeddingResultIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/portrait': typeof PortraitRouteRouteWithChildren
   '/wedding': typeof WeddingRouteRouteWithChildren
   '/admin': typeof AdminRouteLazyRouteWithChildren
+  '/portrait/voucher': typeof PortraitVoucherRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/login': typeof AdminLoginRouteLazyRoute
+  '/portrait/': typeof PortraitIndexRoute
   '/terms/': typeof TermsIndexRoute
   '/wedding/': typeof WeddingIndexRoute
+  '/portrait/result/$id': typeof PortraitResultIdRoute
   '/wedding/result/$id': typeof WeddingResultIdRoute
   '/admin/': typeof AdminNeed_authIndexLazyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminNeed_authIndexLazyRoute
+  '/portrait/voucher': typeof PortraitVoucherRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/login': typeof AdminLoginRouteLazyRoute
+  '/portrait': typeof PortraitIndexRoute
   '/terms': typeof TermsIndexRoute
   '/wedding': typeof WeddingIndexRoute
+  '/portrait/result/$id': typeof PortraitResultIdRoute
   '/wedding/result/$id': typeof WeddingResultIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/portrait': typeof PortraitRouteRouteWithChildren
   '/wedding': typeof WeddingRouteRouteWithChildren
   '/admin': typeof AdminRouteLazyRouteWithChildren
   '/admin/_need_auth': typeof AdminNeed_authRouteRouteWithChildren
+  '/portrait/voucher': typeof PortraitVoucherRoute
   '/wedding/voucher': typeof WeddingVoucherRoute
   '/admin/login': typeof AdminLoginRouteLazyRoute
+  '/portrait/': typeof PortraitIndexRoute
   '/terms/': typeof TermsIndexRoute
   '/wedding/': typeof WeddingIndexRoute
+  '/portrait/result/$id': typeof PortraitResultIdRoute
   '/wedding/result/$id': typeof WeddingResultIdRoute
   '/admin/_need_auth/': typeof AdminNeed_authIndexLazyRoute
 }
@@ -117,39 +152,51 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/portrait'
     | '/wedding'
     | '/admin'
+    | '/portrait/voucher'
     | '/wedding/voucher'
     | '/admin/login'
+    | '/portrait/'
     | '/terms/'
     | '/wedding/'
+    | '/portrait/result/$id'
     | '/wedding/result/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/portrait/voucher'
     | '/wedding/voucher'
     | '/admin/login'
+    | '/portrait'
     | '/terms'
     | '/wedding'
+    | '/portrait/result/$id'
     | '/wedding/result/$id'
   id:
     | '__root__'
     | '/'
+    | '/portrait'
     | '/wedding'
     | '/admin'
     | '/admin/_need_auth'
+    | '/portrait/voucher'
     | '/wedding/voucher'
     | '/admin/login'
+    | '/portrait/'
     | '/terms/'
     | '/wedding/'
+    | '/portrait/result/$id'
     | '/wedding/result/$id'
     | '/admin/_need_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PortraitRouteRoute: typeof PortraitRouteRouteWithChildren
   WeddingRouteRoute: typeof WeddingRouteRouteWithChildren
   AdminRouteLazyRoute: typeof AdminRouteLazyRouteWithChildren
   TermsIndexRoute: typeof TermsIndexRoute
@@ -169,6 +216,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portrait': {
+      id: '/portrait'
+      path: '/portrait'
+      fullPath: '/portrait'
+      preLoaderRoute: typeof PortraitRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wedding': {
@@ -191,6 +245,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteLazyRouteImport
       parentRoute: typeof AdminRouteLazyRoute
+    }
+    '/portrait/': {
+      id: '/portrait/'
+      path: '/'
+      fullPath: '/portrait/'
+      preLoaderRoute: typeof PortraitIndexRouteImport
+      parentRoute: typeof PortraitRouteRoute
+    }
+    '/portrait/voucher': {
+      id: '/portrait/voucher'
+      path: '/voucher'
+      fullPath: '/portrait/voucher'
+      preLoaderRoute: typeof PortraitVoucherRouteImport
+      parentRoute: typeof PortraitRouteRoute
     }
     '/terms/': {
       id: '/terms/'
@@ -220,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNeed_authIndexLazyRouteImport
       parentRoute: typeof AdminNeed_authRouteRoute
     }
+    '/portrait/result/$id': {
+      id: '/portrait/result/$id'
+      path: '/result/$id'
+      fullPath: '/portrait/result/$id'
+      preLoaderRoute: typeof PortraitResultIdRouteImport
+      parentRoute: typeof PortraitRouteRoute
+    }
     '/wedding/result/$id': {
       id: '/wedding/result/$id'
       path: '/result/$id'
@@ -229,6 +304,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface PortraitRouteRouteChildren {
+  PortraitVoucherRoute: typeof PortraitVoucherRoute
+  PortraitIndexRoute: typeof PortraitIndexRoute
+  PortraitResultIdRoute: typeof PortraitResultIdRoute
+}
+
+const PortraitRouteRouteChildren: PortraitRouteRouteChildren = {
+  PortraitVoucherRoute: PortraitVoucherRoute,
+  PortraitIndexRoute: PortraitIndexRoute,
+  PortraitResultIdRoute: PortraitResultIdRoute,
+}
+
+const PortraitRouteRouteWithChildren = PortraitRouteRoute._addFileChildren(
+  PortraitRouteRouteChildren,
+)
 
 interface WeddingRouteRouteChildren {
   WeddingVoucherRoute: typeof WeddingVoucherRoute
@@ -273,6 +364,7 @@ const AdminRouteLazyRouteWithChildren = AdminRouteLazyRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PortraitRouteRoute: PortraitRouteRouteWithChildren,
   WeddingRouteRoute: WeddingRouteRouteWithChildren,
   AdminRouteLazyRoute: AdminRouteLazyRouteWithChildren,
   TermsIndexRoute: TermsIndexRoute,

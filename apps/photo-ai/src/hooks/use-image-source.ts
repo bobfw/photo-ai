@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { loadImage } from "./load-image.ts";
+import { loadImage } from "#lib/load-image";
 
 interface SourceState {
   image: HTMLImageElement | undefined;
@@ -9,7 +9,7 @@ interface SourceState {
 }
 
 // 切换版本时保留上一张，等新图解码完再交给编辑器，避免编辑状态被卸载。
-export function useWeddingSource(sourceUrl: string) {
+export function useImageSource(sourceUrl: string) {
   const [state, setState] = useState<SourceState>({ image: undefined, isLoading: true, error: "" });
   const [attempt, setAttempt] = useState(0);
 

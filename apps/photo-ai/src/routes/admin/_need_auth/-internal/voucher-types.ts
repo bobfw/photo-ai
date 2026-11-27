@@ -1,6 +1,6 @@
 export const VOUCHER_TYPES = [
   { value: "wedding", label: "婚纱照" },
-  { value: "portrait", label: "写真" },
+  { value: "portrait", label: "形象照" },
 ] as const;
 
 export type VoucherType = (typeof VOUCHER_TYPES)[number]["value"];

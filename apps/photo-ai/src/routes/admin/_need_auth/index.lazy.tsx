@@ -202,7 +202,7 @@ function AdminPage() {
         <header className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b pb-5">
           <div className="space-y-1">
             <h1 className="font-heading text-2xl">凭证管理</h1>
-            <p className="text-muted-foreground text-xs tracking-wide">出片 · 婚纱照</p>
+            <p className="text-muted-foreground text-xs tracking-wide">出片 · 婚纱照 / 形象照</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -247,9 +247,7 @@ function AdminPage() {
             <div className="space-y-1.5">
               <DialogTitle>{confirming ? "确认生成" : "生成凭证"}</DialogTitle>
               <DialogDescription>
-                {confirming
-                  ? "请确认以下信息，确认后立即生成。"
-                  : "一次生成一个凭证；写真凭证暂未接入生成流程。"}
+                {confirming ? "请确认以下信息，确认后立即生成。" : "一次生成一个凭证。"}
               </DialogDescription>
             </div>
             {confirming && draft ? (

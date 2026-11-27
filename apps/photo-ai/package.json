@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "imports": {
+    "#agents/portrait": "./src/agents/portrait/index.ts",
     "#agents/wedding": "./src/agents/wedding/index.ts",
     "#agents/*": "./src/agents/*.ts",
+    "#components/*": "./src/components/*.tsx",
     "#hooks/*": "./src/hooks/*.ts",
     "#lib/*": "./src/lib/*.ts",
     "#services/*": "./src/services/*.ts",

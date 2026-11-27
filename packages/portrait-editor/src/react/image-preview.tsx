@@ -251,11 +251,12 @@ export function ImagePreview({
         style={{
           transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
           transformOrigin: "center",
+          WebkitTouchCallout: "default",
           ...(isTransparent && checkerboard),
         }}
       />
       <p className="pointer-events-none absolute bottom-[calc(16px_+_var(--safe-bottom))] left-1/2 -translate-x-1/2 text-xs text-white/70">
-        双指缩放 · 双击放大
+        双指缩放 · 双击放大 · 长按图片存相册
       </p>
       <button
         aria-label="关闭预览"

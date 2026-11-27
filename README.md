@@ -2,7 +2,7 @@
 
 pnpm workspace monorepo。
 
-- `apps/photo-ai` — AI 婚纱照生成，跑在 Cloudflare Workers 上（D1 + R2）。
+- `apps/photo-ai` — AI 婚纱照 / 形象照生成，跑在 Cloudflare Workers 上（D1 + R2）。
 
 新应用放在 `apps/<name>`；跨应用共享代码放在 `packages/<name>`。
 

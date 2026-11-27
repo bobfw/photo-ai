@@ -1,5 +1,5 @@
-// 创建婚纱照凭证码（写入本地 D1；加 --remote 写线上 D1）：
-// pnpm voucher:create -- --total 5 --count 10 [--remote]
+// 创建凭证码（默认婚纱照；--type portrait 创建形象照凭证）：
+// pnpm voucher:create -- --total 5 --count 10 [--type portrait] [--remote]
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
