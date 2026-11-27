@@ -50,4 +50,7 @@ export default defineConfig({
   run: {
     cache: { scripts: false, tasks: true },
   },
+  test: {
+    projects: ["apps/*"],
+  },
 });
