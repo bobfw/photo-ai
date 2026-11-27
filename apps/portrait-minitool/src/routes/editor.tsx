@@ -5,6 +5,7 @@ import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { EditorStage } from "../components/editor-stage.tsx";
+import { ImagePreview } from "../components/image-preview.tsx";
 import { RangeControl } from "../components/range-control.tsx";
 import { ResultModal } from "../components/result-modal.tsx";
 import { Topbar } from "../components/topbar.tsx";
@@ -45,6 +46,16 @@ function getIsCutout(session: PortraitSession) {
   return session.kind === "cutout" || session.hasAlpha;
 }
 
+// 默认比例取最接近原图的预设，保证比例按钮里有选中项。
+function closestRatio(width: number, height: number) {
+  const ratio = width / Math.max(1, height);
+  let closest: number = RATIOS[0].value;
+  for (const item of RATIOS) {
+    if (Math.abs(item.value - ratio) < Math.abs(closest - ratio)) closest = item.value;
+  }
+  return closest;
+}
+
 function createInitialState(session: PortraitSession): EditorState {
   const isCutout = getIsCutout(session);
   return {
@@ -56,10 +67,12 @@ function createInitialState(session: PortraitSession): EditorState {
     grain: isCutout ? 0.25 : 0,
     texture: 0,
     ratio: isCutout
-      ? 3 / 4
+      ? closestRatio(session.source.naturalWidth, session.source.naturalHeight)
       : session.source.naturalWidth / Math.max(1, session.source.naturalHeight),
-    scale: isCutout ? 0.9 : 1,
+    scale: 1,
     offset: { x: 0, y: 0 },
+    cleanEdges: isCutout,
+    dof: 0,
   };
 }
 
@@ -85,6 +98,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
   const [light, setLight] = useState(Math.round(stateReference.current.light * 100));
   const [grain, setGrain] = useState(Math.round(stateReference.current.grain * 100));
   const [texture, setTexture] = useState(0);
+  const [dof, setDof] = useState(0);
   const [scale, setScale] = useState(Math.round(stateReference.current.scale * 100));
   const [ratio, setRatio] = useState(stateReference.current.ratio);
   const [activeTab, setActiveTab] = useState<TabName>(isCutout ? "background" : "beauty");
@@ -94,6 +108,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
   const [busyText, setBusyText] = useState("正在处理人像…");
   const [toast, setToast] = useState<ToastState>();
   const [resultDataUrl, setResultDataUrl] = useState("");
+  const [previewDataUrl, setPreviewDataUrl] = useState("");
   const [isTransparentResult, setIsTransparentResult] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -208,9 +223,9 @@ function EditorPage({ session }: { session: PortraitSession }) {
   }
 
   function resetComposition() {
-    stateReference.current.scale = 0.9;
+    stateReference.current.scale = 1;
     stateReference.current.offset = { x: 0, y: 0 };
-    setScale(90);
+    setScale(100);
     setRedrawKey((key) => key + 1);
   }
 
@@ -229,6 +244,11 @@ function EditorPage({ session }: { session: PortraitSession }) {
     setTexture(value);
   }
 
+  function handleDof(value: number) {
+    stateReference.current.dof = value / 100;
+    setDof(value);
+  }
+
   function handleRatio(value: number) {
     stateReference.current.ratio = value;
     setRatio(value);
@@ -236,6 +256,21 @@ function EditorPage({ session }: { session: PortraitSession }) {
 
   function handleTabChange(tab: TabName) {
     setActiveTab(tab);
+  }
+
+  function handlePreview() {
+    try {
+      const state = stateReference.current;
+      const width = Math.min(EXPORT_WIDTH, PREVIEW_EDGE);
+      const height = Math.round(width / state.ratio);
+      const portrait = preview ?? buildPortrait(state, PREVIEW_EDGE);
+      const canvas = compose(state, portrait, width, height);
+      const isTransparentPreview =
+        state.backgroundImage === undefined && state.background === "transparent";
+      setPreviewDataUrl(canvas.toDataURL(isTransparentPreview ? "image/png" : "image/jpeg", 0.92));
+    } catch (error) {
+      showToast(errorMessage(error), true);
+    }
   }
 
   async function handleExport() {
@@ -371,7 +406,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
             );
           })}
         </div>
-        <div className="row">
+        <div className="row row-between">
           <label className="color-picker" htmlFor="custom-color">
             <input
               aria-label="自定义背景颜色"
@@ -384,30 +419,39 @@ function EditorPage({ session }: { session: PortraitSession }) {
             />
             <span>自定义颜色</span>
           </label>
-        </div>
-
-        <div className="row row-between background-upload">
-          <div className="row">
-            <label className="secondary-button" htmlFor="background-input">
-              上传背景图
-            </label>
-            {backgroundImage ? (
+          {backgroundImage ? (
+            <div className="row">
+              <button
+                aria-label="更换背景图"
+                className="background-thumb"
+                onClick={() => backgroundInputReference.current?.click()}
+                style={{ backgroundImage: `url("${backgroundImage.src}")` }}
+                type="button"
+              />
               <button className="text-button" onClick={clearBackgroundImage} type="button">
                 移除
               </button>
-            ) : undefined}
-          </div>
-          {backgroundImage ? (
-            <div
-              aria-label="当前背景图"
-              className="background-thumb"
-              role="img"
-              style={{ backgroundImage: `url("${backgroundImage.src}")` }}
-            />
-          ) : undefined}
+            </div>
+          ) : (
+            <label className="secondary-button" htmlFor="background-input">
+              上传背景图
+            </label>
+          )}
         </div>
 
+        {backgroundImage ? (
+          <RangeControl
+            display={formatPercent(dof)}
+            label="景深"
+            max={100}
+            min={0}
+            onChange={handleDof}
+            value={dof}
+          />
+        ) : undefined}
+
         <RangeControl
+          disabled={backgroundImage !== undefined}
           display={formatPercent(light)}
           label="光影"
           max={100}
@@ -416,6 +460,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
           value={light}
         />
         <RangeControl
+          disabled={backgroundImage !== undefined}
           display={formatPercent(grain)}
           label="颗粒"
           max={100}
@@ -424,6 +469,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
           value={grain}
         />
         <RangeControl
+          disabled={backgroundImage !== undefined}
           display={formatPercent(texture)}
           label="纹理"
           max={100}
@@ -465,7 +511,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
           })}
         </div>
         <p className="hint">
-          背景只从透明区域透出；用「人像大小」缩小人像，能露出更多背景。颗粒/纹理只作用于纯色背景。
+          用「人像大小」缩小人像能露出更多背景；光影/颗粒/纹理仅纯色背景，景深仅背景图。
         </p>
       </>
     );
@@ -475,24 +521,26 @@ function EditorPage({ session }: { session: PortraitSession }) {
     return (
       <>
         <p className="control-title">成片</p>
-        <p className="hint">
-          {isCutout
-            ? "生成 1400px 宽的成片，背景和人像会一起导出。"
-            : "生成 1400px 宽的成片，按原图比例导出人像。"}
-        </p>
-        <button
-          className="primary-button wide"
-          disabled={isExporting}
-          onClick={() => {
-            void handleExport();
-          }}
-          type="button"
-        >
-          {isExporting ? "生成中…" : "生成成片"}
-        </button>
-        <p className="hint">
-          保存到相册和发笔记需要在小红书 App 内打开。照片只在本机处理，不会上传。
-        </p>
+        <div className="mt-3.5 flex">
+          <button
+            className="secondary-button min-h-12 flex-1"
+            onClick={handlePreview}
+            type="button"
+          >
+            预览
+          </button>
+          <button
+            className="primary-button ml-2 flex-1"
+            disabled={isExporting}
+            onClick={() => {
+              void handleExport();
+            }}
+            type="button"
+          >
+            {isExporting ? "生成中…" : "生成成片"}
+          </button>
+        </div>
+        <p className="hint">照片只在本机处理，不会上传。</p>
       </>
     );
   }
@@ -523,6 +571,7 @@ function EditorPage({ session }: { session: PortraitSession }) {
             busy={busy}
             busyText={busyText}
             canCompose={isCutout}
+            dof={dof}
             grain={grain}
             light={light}
             onCompositionCommit={handleCompositionCommit}
@@ -603,6 +652,16 @@ function EditorPage({ session }: { session: PortraitSession }) {
         >
           {toast.message}
         </div>
+      ) : undefined}
+
+      {previewDataUrl ? (
+        <ImagePreview
+          isTransparent={backgroundImage === undefined && background === "transparent"}
+          onClose={() => {
+            setPreviewDataUrl("");
+          }}
+          src={previewDataUrl}
+        />
       ) : undefined}
 
       {resultDataUrl ? (

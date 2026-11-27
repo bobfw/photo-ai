@@ -18,11 +18,8 @@ export function RangeControl({
   onChange,
 }: RangeControlProperties) {
   return (
-    <div className="control">
-      <div className="control-head">
-        <span>{label}</span>
-        <output>{display}</output>
-      </div>
+    <div className={disabled ? "control is-disabled" : "control"}>
+      <span className="control-label">{label}</span>
       <input
         aria-label={label}
         className="range"
@@ -35,6 +32,7 @@ export function RangeControl({
         type="range"
         value={value}
       />
+      <output className="control-value">{display}</output>
     </div>
   );
 }

@@ -107,8 +107,12 @@
 
 @layer components {
   .topbar {
-    @apply mx-auto flex max-w-[480px] items-center justify-between px-4 py-3;
+    @apply mx-auto flex max-w-[480px] items-center px-4 py-3;
     padding-top: calc(12px + var(--safe-top));
+  }
+
+  .topbar-action {
+    @apply ml-3 shrink-0;
   }
 
   .brand {
@@ -314,19 +318,24 @@
   }
 
   .control {
-    @apply mt-[18px] min-w-0;
+    @apply mt-2 flex min-w-0 items-center;
   }
 
   .control:first-child {
     @apply mt-0;
   }
 
-  .control-head {
-    @apply mb-1 flex items-baseline justify-between text-[13px];
+  .control-label {
+    @apply mr-2 w-14 shrink-0 text-[13px];
   }
 
-  .control-head output {
-    @apply text-xs tabular-nums text-ink-soft;
+  .control-value {
+    @apply ml-2 w-10 shrink-0 text-right text-xs tabular-nums text-ink-soft;
+  }
+
+  .control.is-disabled .control-label,
+  .control.is-disabled .control-value {
+    @apply opacity-40;
   }
 
   .control-title {
@@ -354,7 +363,7 @@
   }
 
   .range {
-    @apply m-0 h-11 w-full appearance-none bg-transparent p-0;
+    @apply m-0 h-11 min-w-0 flex-1 appearance-none bg-transparent p-0;
   }
 
   .range::-webkit-slider-runnable-track {
@@ -384,19 +393,49 @@
   }
 
   .segmented {
-    @apply mt-2 flex rounded-full bg-muted p-[3px];
+    @apply relative mt-2 flex;
+  }
+
+  /* 可见轨道只占 32px，按钮本身保留 44px 触控高度 */
+  .segmented::before {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--color-muted);
+    content: "";
+    transform: translateY(-50%);
   }
 
   .segment {
-    @apply h-11 flex-1 rounded-full border-0 bg-transparent text-xs font-medium text-ink-soft transition-colors;
+    @apply relative z-0 flex h-11 flex-1 items-center justify-center rounded-full border-0 bg-transparent p-0 text-xs font-medium text-ink-soft transition-colors;
+  }
+
+  .segment::before {
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    right: 2px;
+    left: 2px;
+    height: 32px;
+    border-radius: 9999px;
+    background: transparent;
+    content: "";
+    transform: translateY(-50%);
   }
 
   .segment + .segment {
-    @apply ml-1;
+    @apply ml-1.5;
   }
 
   .segment.is-active {
-    @apply bg-brand-strong font-semibold text-inverse;
+    @apply font-semibold text-inverse;
+  }
+
+  .segment.is-active::before {
+    background: var(--color-brand-strong);
   }
 
   .segment:active {
@@ -408,23 +447,29 @@
   }
 
   .swatches {
-    @apply -mx-1 mt-2 flex flex-wrap;
+    @apply -mx-1 mt-1 flex overflow-x-auto py-1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .swatches::-webkit-scrollbar {
+    display: none;
   }
 
   .swatch {
-    @apply inline-flex h-11 w-11 items-center justify-center rounded-full border-0 bg-transparent p-0;
+    @apply inline-flex h-11 w-11 flex-none items-center justify-center rounded-full border-0 bg-transparent p-0;
   }
 
   .swatch span {
-    @apply h-[30px] w-[30px] rounded-full border border-line;
+    @apply h-[26px] w-[26px] rounded-full border border-line;
   }
 
-  .swatch.is-active {
+  .swatch.is-active span {
     @apply outline outline-2 outline-offset-2 outline-brand;
   }
 
   .swatch.is-transparent span,
-  .result-image.is-transparent {
+  .result-image.is-transparent,
+  .preview.is-transparent .preview-image {
     background-color: #f5f5f5;
     background-image:
       linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
@@ -460,12 +505,8 @@
     @apply ml-2;
   }
 
-  .background-upload {
-    @apply mt-3.5;
-  }
-
   .background-thumb {
-    @apply ml-2 h-[42px] w-14 shrink-0 rounded-lg border border-line bg-muted bg-cover bg-center;
+    @apply ml-2 h-11 w-11 shrink-0 rounded-lg border border-line bg-muted bg-cover bg-center;
   }
 
   .primary-button {
@@ -543,11 +584,27 @@
   }
 
   .result-image {
-    @apply mt-3 h-[46vh] min-h-[220px] w-full overflow-hidden rounded-[12px] bg-[#f5f5f5];
+    @apply mx-auto mt-3 flex w-fit max-w-full overflow-hidden rounded-[12px] bg-[#f5f5f5];
   }
 
   .result-image-content {
-    @apply block h-full w-full object-contain;
+    @apply block h-auto max-h-[46vh] w-auto max-w-full object-contain;
+  }
+
+  .preview {
+    @apply fixed bottom-0 left-0 right-0 top-0 z-[200] flex items-center justify-center bg-[rgba(0,0,0,0.94)] px-4;
+    padding-top: calc(56px + var(--safe-top));
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+
+  .preview-image {
+    @apply block max-h-full max-w-full object-contain;
+  }
+
+  .preview-close {
+    @apply absolute flex h-11 w-11 items-center justify-center rounded-full border-0 bg-[rgba(255,255,255,0.16)] text-white;
+    top: calc(12px + var(--safe-top));
+    left: 12px;
   }
 
   .modal-status {

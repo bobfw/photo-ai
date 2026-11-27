@@ -1,5 +1,6 @@
 import {
   adjustPortraitPixels,
+  decontaminateEdges,
   drawPortrait,
   paintPaperGrain,
   paintPaperTexture,
@@ -19,6 +20,8 @@ export interface EditorState {
   ratio: number;
   scale: number;
   offset: PhotoOffset;
+  cleanEdges: boolean;
+  dof: number;
 }
 
 export const PREVIEW_EDGE = 960;
@@ -80,6 +83,10 @@ export function buildPortrait(state: EditorState, maxEdge: number) {
 
   const image = context.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
   adjustPortraitPixels(image.data, sourceCanvas.width, sourceCanvas.height, state.adjustments);
+  // 白底抠图会在边缘残留浅色描边；放在美颜之后，避免美白再把边缘染白。
+  if (state.cleanEdges) {
+    decontaminateEdges(image.data, sourceCanvas.width, sourceCanvas.height);
+  }
   context.putImageData(image, 0, 0);
   return sourceCanvas;
 }
@@ -93,7 +100,7 @@ export function drawComposition(
   height: number,
 ) {
   if (state.backgroundImage) {
-    drawCover(context, width, height, state.backgroundImage);
+    drawBackgroundImage(context, width, height, state.backgroundImage, state.dof);
   } else if (state.background !== "transparent") {
     paintStudioLight(context, width, height, state.background, state.light);
     paintPaperTexture(context, width, height, state.texture);
@@ -133,13 +140,62 @@ function drawSource(image: HTMLImageElement, maxEdge: number) {
   return canvas;
 }
 
+const DOF_BLUR_RATIO = 0.025;
+const DOF_OVERSCAN = 0.06;
+
+interface DofCacheEntry {
+  canvas: HTMLCanvasElement;
+  width: number;
+  height: number;
+  dof: number;
+}
+
+// 拖动人像时背景不变，缓存模糊结果，避免每帧重跑 blur。
+const dofCache = new WeakMap<HTMLImageElement, DofCacheEntry>();
+
+function drawBackgroundImage(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  image: HTMLImageElement,
+  dof: number,
+) {
+  if (dof <= 0) {
+    drawCover(context, width, height, image, 0);
+    return;
+  }
+
+  const cached = dofCache.get(image);
+  if (cached?.width === width && cached.height === height && cached.dof === dof) {
+    context.drawImage(cached.canvas, 0, 0);
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const cacheContext = canvas.getContext("2d");
+  if (!cacheContext) {
+    drawCover(context, width, height, image, dof);
+    return;
+  }
+
+  cacheContext.filter = `blur(${width * DOF_BLUR_RATIO * dof}px)`;
+  drawCover(cacheContext, width, height, image, dof);
+  cacheContext.filter = "none";
+  dofCache.set(image, { canvas, width, height, dof });
+  context.drawImage(canvas, 0, 0);
+}
+
 function drawCover(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
   image: HTMLImageElement,
+  dof: number,
 ) {
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const scale =
+    Math.max(width / image.naturalWidth, height / image.naturalHeight) * (1 + DOF_OVERSCAN * dof);
   const drawWidth = image.naturalWidth * scale;
   const drawHeight = image.naturalHeight * scale;
   context.drawImage(

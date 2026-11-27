@@ -1,6 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { createRoot } from "react-dom/client";
 
+import "./style.css";
 import { router } from "./router.tsx";
 
 const container = document.querySelector("#root");

@@ -18,7 +18,7 @@ export function Topbar({ action }: TopbarProperties) {
         />
         <span className="brand-name">人像出片棚</span>
       </div>
-      {action}
+      {action ? <div className="topbar-action">{action}</div> : undefined}
     </header>
   );
 }

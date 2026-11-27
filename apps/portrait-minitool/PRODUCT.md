@@ -30,7 +30,7 @@ A small, offline creation tool inside Xiaohongshu. It does not generate faces an
 ## Capabilities and Constraints
 
 - Offline static zip, Chrome 61 / ES2017 baseline, classic scripts, no WASM, Worker or network, 10 MiB cap.
-- No AI cutout or segmentation. The background tab belongs to the 透明底人像 upload choice; the app also detects alpha and enables it when a transparent image is uploaded as a normal photo. If the chosen transparent photo has no alpha, the app keeps the background settings but warns that the background will not show through. The 90% default scale reveals the background on transparent images.
+- No AI cutout or segmentation. The background tab belongs to the 透明底人像 upload choice; the app also detects alpha and enables it when a transparent image is uploaded as a normal photo. If the chosen transparent photo has no alpha, the app keeps the background settings but warns that the background will not show through. The portrait starts at 100% scale; shrinking it reveals more background.
 - Photos are processed in memory only; nothing is uploaded.
 - Simplified Chinese only; 44px touch targets; safe areas.
 

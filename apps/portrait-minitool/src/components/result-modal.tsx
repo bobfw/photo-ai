@@ -70,8 +70,8 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
     setIsPosting(true);
     setStatus("正在打开发布页…");
     try {
-      const isOpened = await publishNote(dataUrl);
-      setStatus(isOpened ? "已打开发布页" : "当前环境不支持发笔记，请在小红书 App 内打开");
+      await publishNote(dataUrl);
+      setStatus("已打开发布页");
     } catch (error) {
       setStatus(errorMessage(error));
     } finally {
@@ -83,8 +83,8 @@ export function ResultModal({ dataUrl, isTransparent, onClose }: ResultModalProp
     setIsSaving(true);
     setStatus("正在保存…");
     try {
-      const isSaved = await saveToAlbum(dataUrl);
-      setStatus(isSaved ? "已保存到相册" : "当前环境不支持保存，请在小红书 App 内打开");
+      await saveToAlbum(dataUrl);
+      setStatus("已保存到相册");
     } catch (error) {
       setStatus(errorMessage(error));
     } finally {

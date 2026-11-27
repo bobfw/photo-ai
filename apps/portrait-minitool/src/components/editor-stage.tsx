@@ -27,6 +27,7 @@ interface EditorStageProperties {
   light: number;
   grain: number;
   texture: number;
+  dof: number;
   scale: number;
   redrawKey: number;
   busy: boolean;
@@ -44,6 +45,7 @@ export function EditorStage({
   light,
   grain,
   texture,
+  dof,
   scale,
   redrawKey,
   busy,
@@ -107,7 +109,7 @@ export function EditorStage({
     drawReference.current = drawFrame;
     fitStage();
     drawFrame();
-  }, [preview, ratio, background, backgroundImage, light, grain, texture, scale, redrawKey]);
+  }, [preview, ratio, background, backgroundImage, light, grain, texture, dof, scale, redrawKey]);
 
   useEffect(() => {
     const handleResize = () => {
