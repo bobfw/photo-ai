@@ -111,6 +111,12 @@
   --ring: #ff2442;
 }
 
+/* iOS 26 Safari 的浮动工具栏取页面根背景色；深色编辑页根背景不改就会露出白条 */
+html:has(.editor-dark),
+body:has(.editor-dark) {
+  background-color: #0f0f0f;
+}
+
 .dark {
   color-scheme: dark;
   --background: oklch(0.19 0.008 65);

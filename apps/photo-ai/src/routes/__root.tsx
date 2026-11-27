@@ -27,7 +27,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <link href="/favicon.png" rel="icon" type="image/png" />
-        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
         <meta content="#ffffff" name="theme-color" />
         <meta content="light" name="color-scheme" />
         <title>出片 · AI</title>
