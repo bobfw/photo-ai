@@ -59,11 +59,11 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
       />
 
       {value ? (
-        <div className="border-border relative overflow-hidden rounded-2xl border">
+        <div className="border-border relative overflow-hidden rounded-xl border">
           <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
           <div className="absolute inset-x-2 bottom-2 flex gap-2">
             <button
-              className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong h-11 flex-1 rounded-xl text-xs font-medium shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
+              className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong h-11 flex-1 rounded-full text-xs font-semibold shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
               disabled={isProcessing}
               onClick={() => inputReference.current?.click()}
               type="button"
@@ -72,7 +72,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
             </button>
             <button
               aria-label={`移除${label}`}
-              className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong flex h-11 w-11 items-center justify-center rounded-xl shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
+              className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong flex h-11 w-11 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
               disabled={isProcessing}
               onClick={() => {
                 onChange("");
@@ -86,24 +86,26 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
       ) : (
         <button
           aria-busy={isProcessing}
-          className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border px-3 transition duration-150 active:scale-[0.98] disabled:pointer-events-none"
+          className="border-primary/30 bg-primary/5 hover:bg-primary/10 active:bg-primary/10 ease-out-strong flex aspect-square w-full flex-col items-center justify-center gap-2.5 rounded-2xl border-[1.5px] border-dashed px-3 transition duration-150 active:scale-[0.98] disabled:pointer-events-none"
           disabled={isProcessing}
           onClick={() => inputReference.current?.click()}
           type="button"
         >
-          {isProcessing ? (
-            <Loader2 className="text-muted-foreground size-6 animate-spin" strokeWidth={1.5} />
-          ) : (
-            <ImagePlus className="text-muted-foreground size-6" strokeWidth={1.5} />
-          )}
-          <span className="text-sm font-medium">{isProcessing ? "正在处理" : "点击上传"}</span>
+          <span className="bg-primary/10 text-primary inline-flex size-12 items-center justify-center rounded-full">
+            {isProcessing ? (
+              <Loader2 className="size-6 animate-spin" strokeWidth={1.8} />
+            ) : (
+              <ImagePlus className="size-6" strokeWidth={1.8} />
+            )}
+          </span>
+          <span className="text-sm font-semibold">{isProcessing ? "正在处理" : "点击上传"}</span>
           <span className="text-muted-foreground text-xs">
             {isProcessing ? "请稍候" : "正脸 · 清晰"}
           </span>
         </button>
       )}
 
-      <p className="text-muted-foreground text-center text-xs">{label}</p>
+      <p className="text-muted-foreground text-center text-xs font-medium">{label}</p>
       {error ? (
         <p className="text-destructive text-center text-xs" role="alert">
           {error}

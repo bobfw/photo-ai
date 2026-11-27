@@ -59,17 +59,17 @@ function WeddingPage() {
 
   return (
     <main className="bg-background min-h-dvh">
-      <div className="mx-auto w-full max-w-xl px-6 pt-6 pb-[max(4rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-xl px-5 pt-6 pb-[max(4rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="font-heading text-2xl">出片 · 婚纱照</h1>
-          <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
+          <h1 className="text-xl font-bold">出片 · 婚纱照</h1>
+          <span className="bg-primary/10 text-primary shrink-0 rounded-full px-3 py-1 text-xs font-semibold tabular-nums">
             还可生成 {state.remaining} 张
           </span>
         </div>
 
-        <section className="border-border/60 mt-6 space-y-4 border-t pt-6">
+        <section className="bg-muted mt-5 space-y-4 rounded-2xl p-4">
           <StepHeading
-            index="01"
+            index={1}
             title="上传照片"
             hint="请用正脸、光线均匀、无遮挡、自己 P 过且满意的单人照，男生照片尤其要先 P，出图质量会好很多。"
           />
@@ -77,15 +77,15 @@ function WeddingPage() {
             <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
             <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
           </div>
-          <p className="text-foreground -mt-1 flex items-center gap-2 text-[13px] leading-5 font-medium">
-            <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.5} />
+          <p className="bg-primary/5 text-foreground flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] leading-5 font-medium">
+            <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.8} />
             隐私承诺：不会保存你上传的照片，仅用于本次生成。
           </p>
         </section>
 
-        <section className="border-border/60 mt-4 space-y-4 border-t pt-4">
+        <section className="bg-muted mt-4 space-y-4 rounded-2xl p-4">
           <StepHeading
-            index="02"
+            index={2}
             title="你们的婚纱照"
             hint="选一个系列和姿态，确认时可写补充要求；生成后进入编辑页换背景、加贴纸并保存。"
           />
@@ -94,7 +94,7 @@ function WeddingPage() {
               <p className="text-muted-foreground text-[13px] leading-5">
                 图片仅保留 24 小时，请及时保存。
               </p>
-              <span className="text-muted-foreground shrink-0 text-xs tracking-[0.15em] tabular-nums">
+              <span className="text-muted-foreground shrink-0 text-xs font-medium tabular-nums">
                 {state.images.length} 张
               </span>
             </div>
@@ -104,7 +104,7 @@ function WeddingPage() {
               {state.images.map((image) => (
                 <button
                   aria-label={`打开${findPoseSeries(image.series)?.title ?? image.series}姿态 ${image.pose}`}
-                  className="ease-out-strong border-border relative block overflow-hidden rounded-lg border transition duration-150 active:scale-[0.98]"
+                  className="ease-out-strong border-border relative block overflow-hidden rounded-xl border transition duration-150 active:scale-[0.98]"
                   key={image.id}
                   onClick={() => {
                     openImage(image.id);
@@ -151,14 +151,14 @@ function WeddingPage() {
   );
 }
 
-function StepHeading({ index, title, hint }: { index: string; title: string; hint: string }) {
+function StepHeading({ index, title, hint }: { index: number; title: string; hint: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="font-heading text-primary/30 pt-0.5 text-2xl leading-none tabular-nums">
+    <div className="flex items-start gap-2.5">
+      <span className="bg-primary text-primary-foreground mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums">
         {index}
       </span>
-      <div className="min-w-0 space-y-1.5">
-        <h2 className="font-heading text-xl leading-tight text-balance">{title}</h2>
+      <div className="min-w-0 space-y-1">
+        <h2 className="text-lg leading-tight font-bold text-balance">{title}</h2>
         <p className="text-muted-foreground text-[13px] leading-5">{hint}</p>
       </div>
     </div>
@@ -169,7 +169,7 @@ function GeneratingTile({ pose }: { pose: number }) {
   return (
     <div
       aria-busy="true"
-      className="border-border relative overflow-hidden rounded-lg border"
+      className="border-border relative overflow-hidden rounded-xl border"
       style={{ aspectRatio: "2 / 3" }}
     >
       <div className="bg-secondary size-full" />

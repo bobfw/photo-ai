@@ -74,17 +74,17 @@ export function PosePicker({
         <DrawerTrigger
           render={
             <button
-              className="border-border bg-background hover:bg-secondary/60 active:bg-secondary ease-out-strong disabled:hover:bg-background flex w-full items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition duration-150 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+              className="bg-card ease-out-strong disabled:hover:bg-card flex w-full items-center gap-3 rounded-2xl p-4 text-left shadow-sm transition duration-150 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
               disabled={triggerDisabled}
               type="button"
             />
           }
         >
-          <span className="border-border text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-full border">
-            <Plus className="size-5" strokeWidth={1.5} />
+          <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-full">
+            <Plus className="size-5" strokeWidth={1.8} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">{triggerLabel}</span>
+            <span className="block text-sm font-semibold">{triggerLabel}</span>
             <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-5">
               {triggerHint}
             </span>
@@ -93,7 +93,7 @@ export function PosePicker({
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle className="font-heading">挑一个姿态</DrawerTitle>
+            <DrawerTitle className="text-lg font-bold">挑一个姿态</DrawerTitle>
             <DrawerDescription>选一个系列，再挑一个姿态</DrawerDescription>
           </DrawerHeader>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4">

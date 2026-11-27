@@ -302,12 +302,12 @@ function ResultPage() {
         >
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="font-heading min-w-0 flex-1 truncate text-base leading-tight">
+        <h1 className="min-w-0 flex-1 truncate text-base leading-tight font-semibold">
           {seriesTitle} · 姿态 {image.pose}
         </h1>
         <button
           aria-label="预览"
-          className="border-border bg-background text-foreground hover:bg-muted ease-out-strong flex size-8 shrink-0 items-center justify-center rounded-lg border transition duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-border bg-background text-foreground hover:bg-muted ease-out-strong flex size-11 shrink-0 items-center justify-center rounded-full border transition duration-150 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isPreviewLoading}
           onClick={() => {
             void openPreview();
@@ -320,10 +320,10 @@ function ResultPage() {
             <Eye aria-hidden className="size-3.5" />
           )}
         </button>
-        <div className="border-border bg-background flex shrink-0 items-center overflow-hidden rounded-lg border">
+        <div className="border-border bg-background flex shrink-0 items-center overflow-hidden rounded-full border">
           <button
             aria-label="保存原始透明底图片"
-            className="text-foreground hover:bg-muted ease-out-strong flex h-8 items-center px-2.5 text-xs font-medium transition duration-150"
+            className="text-foreground hover:bg-muted ease-out-strong flex h-11 items-center px-3 text-xs font-semibold transition duration-150"
             onClick={() => {
               void saveOriginal();
             }}
@@ -333,7 +333,7 @@ function ResultPage() {
           </button>
           <button
             aria-label="保存成片，含背景和贴纸"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 ease-out-strong border-border flex h-8 items-center border-l px-2.5 text-xs font-medium transition duration-150"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 ease-out-strong border-border flex h-11 items-center border-l px-3 text-xs font-semibold transition duration-150"
             onClick={() => {
               void save();
             }}
@@ -511,8 +511,8 @@ function ResultPage() {
                     >
                       <span
                         className={cn(
-                          "rounded-md border px-2.5 py-1 text-xs font-medium",
-                          isSelected ? "border-primary bg-primary/5" : "border-border",
+                          "rounded-full border px-3 py-1 text-xs font-medium",
+                          isSelected ? "border-primary bg-primary/5 text-primary" : "border-border",
                         )}
                       >
                         {item.value}

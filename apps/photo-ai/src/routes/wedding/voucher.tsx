@@ -49,23 +49,26 @@ function VoucherPage() {
 
   return (
     <main className="bg-background flex min-h-dvh flex-col">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
-        <header className="border-border/70 flex items-center justify-between border-b pb-5">
-          <span className="font-heading text-xl tracking-[0.3em]">出片</span>
-          <span className="text-muted-foreground text-xs tracking-[0.25em] uppercase">
-            AI Chestnut Studio
-          </span>
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pt-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
+        <header className="flex items-center gap-2.5 pb-5">
+          <img alt="" className="size-9 rounded-[10px]" height={36} src="/favicon.png" width={36} />
+          <div className="min-w-0">
+            <p className="text-[17px] leading-tight font-bold">出片</p>
+            <p className="text-muted-foreground text-xs">AI 摄影工作室</p>
+          </div>
         </header>
 
         <section className="flex flex-1 flex-col justify-center pt-6 pb-32">
-          <h1 className="font-heading text-[clamp(2rem,9vw,3rem)] leading-[1.2] text-balance">
+          <h1 className="text-[clamp(2rem,9vw,3rem)] leading-[1.2] font-bold tracking-tight">
             让每一个想象，
             <br />
-            都能出片
+            <span className="text-primary">都能出片</span>
           </h1>
-          <p className="text-foreground mt-5 flex items-start gap-2 text-sm leading-6 font-medium">
-            <ShieldCheck className="text-primary mt-1 size-4 shrink-0" strokeWidth={1.5} />
-            你的照片只用于出片，不会被保存。
+          <p className="bg-primary/5 text-foreground mt-5 flex items-start gap-2 rounded-2xl px-4 py-3 text-[13px] leading-5">
+            <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.8} />
+            <span>
+              <span className="font-semibold">隐私承诺</span>：你的照片只用于出片，不会被保存。
+            </span>
           </p>
 
           <form
@@ -93,7 +96,7 @@ function VoucherPage() {
               autoCorrect="off"
               autoFocus
               enterKeyHint="go"
-              className="bg-card h-12 rounded-full px-5 font-mono text-base tracking-wider"
+              className="bg-muted focus-visible:bg-background h-12 rounded-full border-transparent px-5 text-center font-mono text-base tracking-wider"
               onChange={(event) => {
                 setCode(event.target.value.trim());
                 setError("");
