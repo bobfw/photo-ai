@@ -1,13 +1,17 @@
 /* oxlint-disable unicorn/prefer-global-this -- Chrome 61 baseline has no globalThis */
 
-import type { EditorState } from "@photo-ai/portrait-editor";
-import { PortraitEditor, PortraitEditorProvider } from "@photo-ai/portrait-editor/react";
+import { DEFAULT_ADJUSTMENTS, type EditorState } from "@photo-ai/portrait-editor";
+import {
+  BackgroundOptionsProvider,
+  PortraitEditor,
+  PortraitEditorProvider,
+} from "@photo-ai/portrait-editor/react";
 import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 
-import { STAGE_CHECKERBOARD } from "../checkerboard.ts";
+import { CHECKERBOARD, STAGE_CHECKERBOARD } from "../checkerboard.ts";
 import { Topbar } from "../components/topbar.tsx";
-import { DEFAULT_ADJUSTMENTS, PREVIEW_EDGE, RATIOS } from "../constants.ts";
+import { PREVIEW_EDGE, RATIOS } from "../constants.ts";
 import { errorMessage } from "../error-message.ts";
 import { usePortraitSession, type PortraitSession } from "../portrait-session.tsx";
 import type { ToastState } from "../types.ts";
@@ -53,6 +57,7 @@ function createInitialState(session: PortraitSession): EditorState {
     offset: { x: 0, y: 0 },
     cleanEdges: isCutout,
     dof: 0,
+    shadow: 0,
   };
 }
 
@@ -96,41 +101,47 @@ function EditorPage({ session }: { session: PortraitSession }) {
       previewEdge={PREVIEW_EDGE}
       processingLabel="正在处理人像…"
     >
-      <Topbar
-        action={
-          <button
-            className="min-h-11 rounded-full bg-muted px-4 text-[13px] font-semibold text-ink transition-transform duration-150 active:scale-[0.97] motion-reduce:transition-none"
-            onClick={() => {
-              void navigate({ to: "/" });
-            }}
-            type="button"
+      <BackgroundOptionsProvider
+        checkerboard={CHECKERBOARD}
+        hasAlpha={session.hasAlpha}
+        ratios={RATIOS}
+      >
+        <Topbar
+          action={
+            <button
+              className="min-h-11 rounded-full bg-muted px-4 text-[13px] font-semibold text-ink transition-transform duration-150 active:scale-[0.97] motion-reduce:transition-none"
+              onClick={() => {
+                void navigate({ to: "/" });
+              }}
+              type="button"
+            >
+              换一张
+            </button>
+          }
+        />
+
+        <main className="mx-auto max-w-[480px] px-4 pb-[calc(32px_+_var(--safe-bottom))] min-[520px]:px-5">
+          <section className="pt-1">
+            <PortraitEditor
+              checkerboard={STAGE_CHECKERBOARD}
+              defaultPluginId={isCutout ? "background" : "beauty"}
+              interactive={isCutout}
+              plugins={createEditorPlugins(isCutout)}
+            />
+          </section>
+        </main>
+
+        {toast ? (
+          <div
+            className={`fixed bottom-[calc(20px_+_var(--safe-bottom))] left-1/2 z-[200] max-w-[calc(100vw_-_32px)] -translate-x-1/2 rounded-full px-4 py-2.5 text-center text-xs text-inverse shadow-[0_8px_24px_rgba(0,0,0,0.18)] ${
+              toast.isError ? "bg-brand-strong" : "bg-[#1a1a1a]"
+            }`}
+            role={toast.isError ? "alert" : "status"}
           >
-            换一张
-          </button>
-        }
-      />
-
-      <main className="mx-auto max-w-[480px] px-4 pb-[calc(32px_+_var(--safe-bottom))] min-[520px]:px-5">
-        <section className="pt-1">
-          <PortraitEditor
-            checkerboard={STAGE_CHECKERBOARD}
-            defaultPluginId={isCutout ? "background" : "beauty"}
-            interactive={isCutout}
-            plugins={createEditorPlugins(isCutout)}
-          />
-        </section>
-      </main>
-
-      {toast ? (
-        <div
-          className={`fixed bottom-[calc(20px_+_var(--safe-bottom))] left-1/2 z-[200] max-w-[calc(100vw_-_32px)] -translate-x-1/2 rounded-full px-4 py-2.5 text-center text-xs text-inverse shadow-[0_8px_24px_rgba(0,0,0,0.18)] ${
-            toast.isError ? "bg-brand-strong" : "bg-[#1a1a1a]"
-          }`}
-          role={toast.isError ? "alert" : "status"}
-        >
-          {toast.message}
-        </div>
-      ) : undefined}
+            {toast.message}
+          </div>
+        ) : undefined}
+      </BackgroundOptionsProvider>
     </PortraitEditorProvider>
   );
 }

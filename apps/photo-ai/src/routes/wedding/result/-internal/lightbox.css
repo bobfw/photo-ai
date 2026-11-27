@@ -1,4 +1,0 @@
-/* 允许移动端长按预览图，调出系统的“存储图像”菜单 */
-.wedding-preview-lightbox .yarl__slide_image {
-  -webkit-touch-callout: default;
-}

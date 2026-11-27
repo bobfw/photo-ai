@@ -104,14 +104,22 @@ export function PortraitEditorProvider({
     onErrorReference.current?.(error);
   }, []);
 
-  const renderImage = useCallback(
-    async ({ width, portraitEdge }: { width: number; portraitEdge: number }) => {
+  const renderCanvas = useCallback(
+    ({ width, portraitEdge }: { width: number; portraitEdge: number }) => {
       const current = stateReference.current;
       if (!current.source) throw new Error("还没有选择人像");
 
       const height = Math.round(width / current.ratio);
       const portrait = buildPortrait(current, portraitEdge);
-      const canvas = compose(current, portrait, width, height);
+      return compose(current, portrait, width, height);
+    },
+    [],
+  );
+
+  const renderImage = useCallback(
+    async ({ width, portraitEdge }: { width: number; portraitEdge: number }) => {
+      const current = stateReference.current;
+      const canvas = renderCanvas({ width, portraitEdge });
       const isTransparent =
         current.backgroundImage === undefined && current.background === "transparent";
       const blob = await new Promise<Blob>((resolve, reject) => {
@@ -122,7 +130,7 @@ export function PortraitEditorProvider({
       });
       return { blob, isTransparent };
     },
-    [],
+    [renderCanvas],
   );
 
   const value: PortraitEditorContextValue = {
@@ -137,6 +145,7 @@ export function PortraitEditorProvider({
     commitScale,
     setBusy,
     reportError,
+    renderCanvas,
     renderImage,
   };
 

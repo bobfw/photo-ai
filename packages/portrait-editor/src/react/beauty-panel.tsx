@@ -1,7 +1,7 @@
-import { RangeControl, usePortraitEditor } from "@photo-ai/portrait-editor/react";
-
-import { DEFAULT_ADJUSTMENTS } from "../../constants.ts";
+import { DEFAULT_ADJUSTMENTS } from "../beauty.ts";
+import { usePortraitEditor } from "./editor-context.tsx";
 import { formatPercent, formatSigned } from "./format.ts";
+import { RangeControl } from "./range-control.tsx";
 
 export function BeautyPanel() {
   const { state, updateAdjustments } = usePortraitEditor();
@@ -61,7 +61,7 @@ export function BeautyPanel() {
       />
       <div className="flex min-w-0 items-center">
         <button
-          className="inline-flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px] text-ink-soft active:text-ink"
+          className="text-muted-foreground active:text-foreground inline-flex min-h-11 items-center justify-center rounded-full bg-transparent px-3 text-[13px]"
           onClick={() => {
             updateAdjustments(DEFAULT_ADJUSTMENTS);
           }}
@@ -70,7 +70,7 @@ export function BeautyPanel() {
           重置美颜
         </button>
       </div>
-      <p className="mb-0 mt-3.5 text-[11px] leading-[1.6] text-faint">
+      <p className="text-muted-foreground mt-3.5 mb-0 text-[11px] leading-[1.6]">
         磨皮只作用于肤色区域，保留五官细节。
       </p>
     </>

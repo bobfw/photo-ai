@@ -10,6 +10,22 @@ export interface PortraitAdjustments {
   warmth: number;
 }
 
+export const NEUTRAL_ADJUSTMENTS: PortraitAdjustments = {
+  smooth: 0,
+  whiten: 0,
+  brightness: 0,
+  saturation: 0,
+  warmth: 0,
+};
+
+export const DEFAULT_ADJUSTMENTS: PortraitAdjustments = {
+  smooth: 0.35,
+  whiten: 0.2,
+  brightness: 0,
+  saturation: 0,
+  warmth: 0,
+};
+
 const SKIN_CB = 108;
 const SKIN_CR = 151;
 const SKIN_CB_RADIUS = 24;

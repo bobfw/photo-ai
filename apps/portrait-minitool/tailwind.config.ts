@@ -23,6 +23,7 @@ const config: Config = {
         "brand-strong": "var(--color-brand-strong)",
         card: "var(--color-surface)",
         "card-foreground": "var(--color-ink)",
+        destructive: "var(--color-brand-strong)",
         faint: "var(--color-faint)",
         foreground: "var(--color-ink)",
         ink: "var(--color-ink)",

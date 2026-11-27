@@ -1,7 +1,9 @@
-import type { PortraitEditorPlugin } from "@photo-ai/portrait-editor/react";
+import {
+  BackgroundPanel,
+  BeautyPanel,
+  type PortraitEditorPlugin,
+} from "@photo-ai/portrait-editor/react";
 
-import { BackgroundPanel } from "./background-panel.tsx";
-import { BeautyPanel } from "./beauty-panel.tsx";
 import { ExportPanel } from "./export-panel.tsx";
 
 export function createEditorPlugins(isCutout: boolean): PortraitEditorPlugin[] {

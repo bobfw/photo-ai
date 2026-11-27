@@ -3,7 +3,8 @@ import { adjustPortraitPixels } from "./beauty.ts";
 import type { PortraitAdjustments } from "./beauty.ts";
 import { decontaminateEdges } from "./cutout.ts";
 import { drawPortrait } from "./draw.ts";
-import type { PhotoOffset } from "./types.ts";
+import { measurePersonFootprint, paintContactShadow } from "./shadow.ts";
+import type { PersonFootprint, PhotoOffset } from "./types.ts";
 
 export interface EditorState {
   source: HTMLImageElement | undefined;
@@ -18,6 +19,7 @@ export interface EditorState {
   offset: PhotoOffset;
   cleanEdges: boolean;
   dof: number;
+  shadow: number;
 }
 
 export function loadImageElement(source: string) {
@@ -99,7 +101,33 @@ export function drawComposition(
     paintPaperGrain(context, width, height, state.grain);
   }
 
+  const hasBackground = state.backgroundImage !== undefined || state.background !== "transparent";
+  if (hasBackground && state.shadow > 0 && state.source) {
+    const footprint = footprintOf(state.source);
+    if (footprint) {
+      paintContactShadow(
+        context,
+        width,
+        height,
+        footprint,
+        state.scale,
+        state.offset,
+        state.shadow,
+      );
+    }
+  }
+
   drawPortrait(context, width, height, portrait, state.scale, state.offset);
+}
+
+// 拖动和缩放时每帧都会取落脚点，按原图缓存一次。
+const footprintCache = new WeakMap<HTMLImageElement, PersonFootprint | undefined>();
+
+function footprintOf(source: HTMLImageElement) {
+  if (footprintCache.has(source)) return footprintCache.get(source);
+  const footprint = measurePersonFootprint(source);
+  footprintCache.set(source, footprint);
+  return footprint;
 }
 
 export function compose(

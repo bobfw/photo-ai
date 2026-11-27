@@ -22,6 +22,7 @@ export interface PortraitEditorContextValue {
   commitScale: () => void;
   setBusy: (isBusy: boolean, text?: string) => void;
   reportError: (error: unknown) => void;
+  renderCanvas: (options: { width: number; portraitEdge: number }) => HTMLCanvasElement;
   renderImage: (options: {
     width: number;
     portraitEdge: number;

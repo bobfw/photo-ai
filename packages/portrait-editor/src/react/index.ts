@@ -1,6 +1,11 @@
+export { BackgroundOptionsProvider } from "./background-options.tsx";
+export { BackgroundPanel } from "./background-panel.tsx";
+export { BeautyPanel } from "./beauty-panel.tsx";
+export { ImagePreview } from "./image-preview.tsx";
 export { PortraitEditor } from "./portrait-editor.tsx";
 export { PortraitEditorProvider, usePortraitEditor } from "./editor-context.tsx";
 export { PortraitStage } from "./portrait-stage.tsx";
 export { RangeControl } from "./range-control.tsx";
-export { ImagePreview } from "./image-preview.tsx";
+export { stickerPlugin } from "./sticker-plugin.ts";
+export { StickerProvider, useStickers } from "./stickers-context.tsx";
 export type { PortraitEditorContextValue, PortraitEditorPlugin } from "./types.ts";

@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => {
           react(),
           tailwindcss(),
         ],
+    resolve: {
+      // 共享包自带 React devDependency，必须和 app 用同一份运行时
+      dedupe: ["react", "react-dom"],
+    },
     server: {
       port: 5701,
       host: "0.0.0.0",
