@@ -1,8 +1,15 @@
-import { measurePersonFootprint, paintContactShadow } from "./contact-shadow.ts";
+import {
+  drawPortrait,
+  measurePersonFootprint,
+  paintContactShadow,
+  paintPaperGrain,
+  paintPaperTexture,
+  paintStudioLight,
+  type PhotoOffset,
+} from "@photo-ai/portrait-editor";
+
 import { loadImage } from "./load-image.ts";
-import { paintPaperGrain, paintPaperTexture } from "./paper-texture.ts";
-import { paintStudioLight } from "./studio-light.ts";
-import type { PhotoOffset, Sticker } from "./types.ts";
+import type { Sticker } from "./types.ts";
 
 interface ComposeImageOptions {
   imageUrl: string;
@@ -87,20 +94,8 @@ export async function composeImage({
     }
   }
 
-  // 和预览的 object-contain 一致：先等比放进画布，再叠加缩放和位移
-  const fitScale = Math.min(
-    canvas.width / source.naturalWidth,
-    canvas.height / source.naturalHeight,
-  );
-  const width = source.naturalWidth * fitScale * photoScale;
-  const height = source.naturalHeight * fitScale * photoScale;
-  context.drawImage(
-    source,
-    (canvas.width - width) / 2 + (photoOffset.x / 100) * canvas.width,
-    (canvas.height - height) / 2 + (photoOffset.y / 100) * canvas.height,
-    width,
-    height,
-  );
+  // 和预览的 object-contain 一致；共享包保证预览和导出的构图算法相同
+  drawPortrait(context, canvas.width, canvas.height, source, photoScale, photoOffset);
 
   const stickerImages = await Promise.all(stickers.map((sticker) => loadImage(sticker.src)));
   for (const [index, sticker] of stickers.entries()) {

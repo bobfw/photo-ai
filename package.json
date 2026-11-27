@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter photo-ai run dev",
+    "dev:mintool": "pnpm --filter portrait-minitool run dev",
+    "minitool:build": "pnpm --filter portrait-minitool run build",
+    "minitool:zip": "pnpm --filter portrait-minitool run zip",
     "build": "pnpm --filter photo-ai run build",
     "preview": "pnpm --filter photo-ai run preview",
     "deploy": "pnpm --filter photo-ai run deploy",

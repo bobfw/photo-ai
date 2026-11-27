@@ -8,8 +8,3 @@ export interface Sticker {
   x: number;
   y: number;
 }
-
-export interface PhotoOffset {
-  x: number;
-  y: number;
-}

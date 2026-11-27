@@ -1,6 +1,6 @@
+import { measurePersonFootprint, type PersonFootprint } from "@photo-ai/portrait-editor";
 import { useEffect, useState } from "react";
 
-import { measurePersonFootprint, type PersonFootprint } from "./contact-shadow.ts";
 import { loadImage } from "./load-image.ts";
 
 export function usePersonFootprint(imageUrl: string | undefined) {

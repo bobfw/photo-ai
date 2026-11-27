@@ -15,6 +15,12 @@ korean-wedding-pinterest/
 # EdgeOne 上传包，由 pnpm run proxy:zip 生成
 apps/photo-ai/scripts/proxy-script.zip
 
+# 小工具上传包，由 pnpm minitool:zip 生成
+apps/portrait-minitool/portrait-minitool.zip
+
 # Downloaded reference images (not for commit)
 reference-images/
 test-img
+
+# Impeccable local screenshots (may contain test photos)
+**/.impeccable/review/

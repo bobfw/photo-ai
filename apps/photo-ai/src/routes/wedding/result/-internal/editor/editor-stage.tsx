@@ -1,3 +1,11 @@
+import {
+  paintContactShadow,
+  paintPaperGrain,
+  paintPaperTexture,
+  paintStudioLight,
+  type PersonFootprint,
+  type PhotoOffset,
+} from "@photo-ai/portrait-editor";
 import { useEffect, useRef, type PointerEvent, type ReactNode, type RefObject } from "react";
 
 import { cn } from "#lib/utils";
@@ -5,10 +13,7 @@ import { cn } from "#lib/utils";
 import { CHECKERBOARD } from "../../../-internal/components/checkerboard.ts";
 import { RetryImage } from "../../../-internal/components/retry-image.tsx";
 import { STUDIO_LIGHT_PREVIEW_WIDTH } from "./constants.ts";
-import { paintContactShadow, type PersonFootprint } from "./contact-shadow.ts";
-import { paintPaperGrain, paintPaperTexture } from "./paper-texture.ts";
-import { paintStudioLight } from "./studio-light.ts";
-import type { PhotoOffset, Sticker } from "./types.ts";
+import type { Sticker } from "./types.ts";
 
 interface EditorStageProperties {
   background: string;

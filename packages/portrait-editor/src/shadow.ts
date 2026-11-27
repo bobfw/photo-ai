@@ -1,19 +1,11 @@
-import type { PhotoOffset } from "./types.ts";
-
-export interface PersonFootprint {
-  naturalWidth: number;
-  naturalHeight: number;
-  centerX: number;
-  bottomY: number;
-  width: number;
-}
+import { sourceSize, type PortraitSource } from "./source.ts";
+import type { PersonFootprint, PhotoOffset } from "./types.ts";
 
 const ALPHA_THRESHOLD = 24;
 const MAX_MEASURE_SIZE = 512;
 
-export function measurePersonFootprint(image: HTMLImageElement): PersonFootprint | undefined {
-  const naturalWidth = image.naturalWidth;
-  const naturalHeight = image.naturalHeight;
+export function measurePersonFootprint(image: PortraitSource): PersonFootprint | undefined {
+  const { width: naturalWidth, height: naturalHeight } = sourceSize(image);
   if (naturalWidth <= 0 || naturalHeight <= 0) return undefined;
 
   const scale = Math.min(1, MAX_MEASURE_SIZE / Math.max(naturalWidth, naturalHeight));

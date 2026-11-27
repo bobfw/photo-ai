@@ -1,7 +1,7 @@
+import type { PhotoOffset } from "@photo-ai/portrait-editor";
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 
 import { PHOTO_MAX_SCALE, PHOTO_MIN_SCALE } from "./constants.ts";
-import type { PhotoOffset } from "./types.ts";
 
 interface PhotoGesture {
   offsetX: number;
