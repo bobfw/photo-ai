@@ -82,10 +82,10 @@ judging UI from source alone.
   `activeTasks` 自动续轮询，刷新/第二天重开都不会丢结果；更久或用户不再回访的任务仍
   需要回调/Queue 兜底（MediaKit 结果 URL 也只有 24 小时）。
 - 桶按私有空间处理：每次提交生成任务时，后端为参考图签发 30 分钟下载 URL 给
-  MediaKit；`QINIU_PUBLIC_URL` 必须是完整 URL，线上建议绑定 HTTPS 自定义域名。
-- 相关 secrets：`QINIU_ACCESS_KEY`、`QINIU_SECRET_KEY`、`QINIU_PUBLIC_URL`
-  （桶的访问域名，含协议）、`ARK_MEDIAKIT_API_KEY`（AI MediaKit 的 API Key）。
-  桶固定在华东 z0，上传域名写死在 `src/services/qiniu.ts`。
+  MediaKit；访问域名和上传域名都写死在 `src/services/qiniu.ts`，线上建议把 `PUBLIC_URL`
+  换成 HTTPS 自定义域名。
+- 相关 secrets：`QINIU_ACCESS_KEY`、`QINIU_SECRET_KEY`、`ARK_MEDIAKIT_API_KEY`
+  （AI MediaKit 的 API Key）。桶固定在华东 z0。
 
 ## Cloudflare
 

@@ -32,15 +32,15 @@ pnpm db:migrate:remote           # 应用到线上 D1
 
 ## 部署
 
-在 `apps/photo-ai` 下：
+在 `apps/photo-ai` 下（`wrangler` 是本地 devDependency，用 `pnpm exec`）：
 
 ```bash
-wrangler d1 create photo-ai      # 把返回的 database_id 填进 wrangler.jsonc
-# 七牛桶 chupiandate：绑定 HTTPS 自定义域名，配置 temp_24h/ 的 1 天生命周期规则
-wrangler secret put ARK_MEDIAKIT_API_KEY
-wrangler secret put QINIU_ACCESS_KEY
-wrangler secret put QINIU_SECRET_KEY
-wrangler secret put QINIU_PUBLIC_URL
+pnpm exec wrangler d1 create photo-ai   # 把返回的 database_id 填进 wrangler.jsonc
+# 七牛桶 chupiandate：访问域名写在 apps/photo-ai/src/services/qiniu.ts 的 PUBLIC_URL，
+# 线上换成 HTTPS 自定义域名；配置 temp_24h/ 的 1 天生命周期规则
+pnpm exec wrangler secret put ARK_MEDIAKIT_API_KEY
+pnpm exec wrangler secret put QINIU_ACCESS_KEY
+pnpm exec wrangler secret put QINIU_SECRET_KEY
 ```
 
 在仓库根目录部署：

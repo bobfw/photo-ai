@@ -2,6 +2,5 @@
 ADMIN_API_KEY=
 QINIU_ACCESS_KEY=
 QINIU_SECRET_KEY=
-# 七牛桶 chupiandate（华东）的访问域名（完整 URL，MediaKit 拉图用；线上建议 HTTPS）
-QINIU_PUBLIC_URL=
 ARK_MEDIAKIT_API_KEY=
+# 七牛桶的访问域名写在 src/services/qiniu.ts 的 PUBLIC_URL

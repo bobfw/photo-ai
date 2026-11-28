@@ -4,6 +4,10 @@ import { env } from "cloudflare:workers";
 const BUCKET = "chupiandate";
 // 桶在华东 z0；换区域/迁移桶时改这里
 const UPLOAD_HOST = "https://upload.qiniup.com";
+// 桶的访问域名，只用于 MediaKit 拉签名图。测试域名没有匹配的 HTTPS 证书，
+// 绑好 HTTPS 自定义域名后改成 https://...
+// oxlint-disable-next-line unicorn-js/prefer-https -- 测试域名没有匹配的 HTTPS 证书
+const PUBLIC_URL = "http://tp7ss85my.hd-bkt.clouddn.com";
 const KEY_PREFIX = "temp_24h/";
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const TOKEN_TTL_SECONDS = 60 * 60;
@@ -11,17 +15,17 @@ const TOKEN_TTL_SECONDS = 60 * 60;
 const DOWNLOAD_TTL_SECONDS = 30 * 60;
 
 export function qiniuConfig() {
-  const { QINIU_ACCESS_KEY, QINIU_SECRET_KEY, QINIU_PUBLIC_URL } = env;
-  if (!QINIU_ACCESS_KEY || !QINIU_SECRET_KEY || !QINIU_PUBLIC_URL) {
+  const { QINIU_ACCESS_KEY, QINIU_SECRET_KEY } = env;
+  if (!QINIU_ACCESS_KEY || !QINIU_SECRET_KEY) {
     throw new Error("服务端未配置七牛参数");
   }
-  if (!/^https?:\/\//.test(QINIU_PUBLIC_URL)) {
-    throw new Error("QINIU_PUBLIC_URL 必须是完整 URL（含 http:// 或 https://）");
+  if (!/^https?:\/\//.test(PUBLIC_URL)) {
+    throw new Error("PUBLIC_URL 必须是完整 URL（含 http:// 或 https://）");
   }
   return {
     accessKey: QINIU_ACCESS_KEY,
     secretKey: QINIU_SECRET_KEY,
-    publicBase: QINIU_PUBLIC_URL,
+    publicBase: PUBLIC_URL,
     uploadHost: UPLOAD_HOST,
   };
 }
