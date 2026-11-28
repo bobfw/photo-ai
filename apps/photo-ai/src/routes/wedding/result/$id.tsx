@@ -299,11 +299,7 @@ function ResultPage() {
                 className="text-primary mt-0.5 size-4 shrink-0 animate-spin motion-reduce:animate-none"
               />
               <span>
-                {resume.isResuming
-                  ? "正在完成之前的修改…"
-                  : editMutation.isPending
-                    ? "正在修改这张图…"
-                    : "正在重新生成…"}
+                {modifyingLabel(resume.isResuming, editMutation.isPending)}
                 <span className="text-muted-foreground block">
                   预计 20 秒–2 分钟，刷新后可自动继续。
                 </span>
@@ -402,6 +398,12 @@ function ResultPage() {
       </Dialog>
     </main>
   );
+}
+
+function modifyingLabel(isResuming: boolean, isEditing: boolean) {
+  if (isResuming) return "正在完成之前的修改…";
+  if (isEditing) return "正在修改这张图…";
+  return "正在重新生成…";
 }
 
 function modifyHintText(hasPhotos: boolean, remainingEdits: number) {
