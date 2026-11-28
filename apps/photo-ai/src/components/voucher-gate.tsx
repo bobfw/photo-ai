@@ -82,7 +82,8 @@ export function VoucherGate({ initialCode, initialError, type, onEnter }: Vouche
           <p className="bg-primary/5 text-foreground mt-5 flex items-start gap-2 rounded-2xl px-4 py-3 text-[13px] leading-5">
             <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.8} />
             <span>
-              <span className="font-semibold">隐私承诺</span>：你的照片只用于出片，不会被保存。
+              <span className="font-semibold">隐私承诺</span>：你的照片只用于出片，24
+              小时内自动删除。
             </span>
           </p>
 

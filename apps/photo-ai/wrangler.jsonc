@@ -16,10 +16,4 @@
       "migrations_pattern": "drizzle/**/migration.sql",
     },
   ],
-  "r2_buckets": [
-    {
-      "binding": "BUCKET",
-      "bucket_name": "photo-ai-images",
-    },
-  ],
 }

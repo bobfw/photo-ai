@@ -6,7 +6,10 @@ import { z } from "zod";
 import { CenteredMessage } from "#components/centered-message";
 import { PhotoUploader } from "#components/photo-uploader";
 import { RetryImage } from "#components/retry-image";
+import { useResumeGeneration } from "#hooks/use-resume-generation";
 import { CHECKERBOARD } from "#lib/checkerboard";
+import { uploadPhoto } from "#lib/upload-photo";
+import { waitForGeneration } from "#lib/wait-for-generation";
 import { toast } from "#ui/toast";
 
 import { usePortraitPhoto } from "./-internal/components/portrait-photo.tsx";
@@ -27,7 +30,7 @@ const PHOTO_LABELS = ["正脸", "左侧脸", "右侧脸"];
 function PortraitPage() {
   const { code, state } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { photos, hasPhoto, setPhoto } = usePortraitPhoto();
+  const { keys, photos, hasPhoto, setPhoto } = usePortraitPhoto();
 
   function openImage(imageId: number) {
     void navigate({
@@ -38,17 +41,20 @@ function PortraitPage() {
   }
 
   const generateMutation = useMutation({
-    mutationFn: (choice: StyleChoice) =>
-      generatePortraitImage({
+    mutationFn: async (choice: StyleChoice) => {
+      const { taskId } = await generatePortraitImage({
         data: {
           code,
+          clientToken: crypto.randomUUID(),
           style: choice.style,
           pose: choice.pose,
           composition: choice.composition,
-          faces: photos.filter((photo) => photo !== ""),
+          faces: keys,
           request: choice.request,
         },
-      }),
+      });
+      return waitForGeneration(code, "portrait", taskId);
+    },
     onSuccess: (image) => {
       toast.add({
         title: "生成完成",
@@ -58,6 +64,15 @@ function PortraitPage() {
       openImage(image.id);
     },
   });
+
+  const resumeTask = state.activeTasks.find((task) => task.kind === "generate");
+  const resume = useResumeGeneration(code, "portrait", resumeTask?.id, (image) => {
+    openImage(image.id);
+  });
+  const isGenerating = generateMutation.isPending || resume.isResuming;
+  const generatingTitle = generateMutation.isPending
+    ? (findPortraitStyle(generateMutation.variables.style)?.title ?? "形象照")
+    : (findPortraitStyle(resumeTask?.series ?? "")?.title ?? "形象照");
 
   return (
     <main className="bg-background min-h-dvh">
@@ -83,13 +98,14 @@ function PortraitPage() {
                 onChange={(value) => {
                   setPhoto(index, value);
                 }}
+                upload={(file) => uploadPhoto(code, "portrait", file)}
                 value={photos[index]}
               />
             ))}
           </div>
           <p className="bg-primary/5 text-foreground flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.8} />
-            隐私承诺：不会保存你上传的照片，仅用于本次生成。
+            隐私承诺：上传照片仅用于本次生成，24 小时内自动删除。
           </p>
         </section>
 
@@ -109,7 +125,7 @@ function PortraitPage() {
               </span>
             </div>
           ) : undefined}
-          {state.images.length > 0 || generateMutation.isPending ? (
+          {isGenerating || state.images.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {state.images.map((image) => (
                 <button
@@ -133,14 +149,10 @@ function PortraitPage() {
                   </span>
                 </button>
               ))}
-              {generateMutation.isPending ? (
-                <GeneratingTile
-                  title={findPortraitStyle(generateMutation.variables.style)?.title ?? "形象照"}
-                />
-              ) : undefined}
+              {isGenerating ? <GeneratingTile title={generatingTitle} /> : undefined}
             </div>
           ) : undefined}
-          <div className={generateMutation.isPending ? "hidden" : undefined}>
+          <div className={isGenerating ? "hidden" : undefined}>
             <StylePicker
               actionDisabled={state.remaining === 0}
               onGenerate={(choice) => {
@@ -152,9 +164,9 @@ function PortraitPage() {
               }
               triggerLabel={state.images.length === 0 ? "选风格、姿势和构图" : "再生成一张形象照"}
             />
-            {generateMutation.error ? (
+            {generateMutation.error || resume.error ? (
               <p className="text-destructive mt-4 text-center text-sm" role="alert">
-                {generateMutation.error.message}
+                {generateMutation.error?.message ?? resume.error}
               </p>
             ) : undefined}
           </div>

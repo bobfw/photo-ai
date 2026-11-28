@@ -6,7 +6,10 @@ import { z } from "zod";
 import { CenteredMessage } from "#components/centered-message";
 import { PhotoUploader } from "#components/photo-uploader";
 import { RetryImage } from "#components/retry-image";
+import { useResumeGeneration } from "#hooks/use-resume-generation";
 import { CHECKERBOARD } from "#lib/checkerboard";
+import { uploadPhoto } from "#lib/upload-photo";
+import { waitForGeneration } from "#lib/wait-for-generation";
 import { toast } from "#ui/toast";
 
 import { PosePicker, type PoseChoice } from "./-internal/components/pose-picker.tsx";
@@ -25,7 +28,7 @@ export const Route = createFileRoute("/wedding/")({
 function WeddingPage() {
   const { code, state } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { hasPhotos, photoA, photoB, setPhotoA, setPhotoB } = useWeddingPhotos();
+  const { faces, hasPhotos, photoA, photoB, setPhotoA, setPhotoB } = useWeddingPhotos();
 
   function openImage(imageId: number) {
     void navigate({
@@ -36,17 +39,20 @@ function WeddingPage() {
   }
 
   const generateMutation = useMutation({
-    mutationFn: (choice: PoseChoice) =>
-      generatePoseImage({
+    mutationFn: async (choice: PoseChoice) => {
+      const { taskId } = await generatePoseImage({
         data: {
           code,
+          clientToken: crypto.randomUUID(),
           series: choice.series,
           pose: choice.pose,
           outfit: choice.outfit,
-          faces: [photoA, photoB],
+          faces,
           request: choice.request,
         },
-      }),
+      });
+      return waitForGeneration(code, "wedding", taskId);
+    },
     onSuccess: (image) => {
       toast.add({
         title: "生成完成",
@@ -56,6 +62,15 @@ function WeddingPage() {
       openImage(image.id);
     },
   });
+
+  const resumeTask = state.activeTasks.find((task) => task.kind === "generate");
+  const resume = useResumeGeneration(code, "wedding", resumeTask?.id, (image) => {
+    openImage(image.id);
+  });
+  const isGenerating = generateMutation.isPending || resume.isResuming;
+  const generatingPose = generateMutation.isPending
+    ? generateMutation.variables.pose
+    : resumeTask?.pose;
 
   return (
     <main className="bg-background min-h-dvh">
@@ -74,12 +89,26 @@ function WeddingPage() {
             hint="请用正脸、光线均匀、无遮挡、自己 P 过且满意的单人照，男生照片尤其要先 P，出图质量会好很多。"
           />
           <div className="mx-auto grid max-w-80 grid-cols-2 gap-4">
-            <PhotoUploader label="女生照片" onChange={setPhotoA} value={photoA} />
-            <PhotoUploader label="男生照片" onChange={setPhotoB} value={photoB} />
+            <PhotoUploader
+              label="女生照片"
+              onChange={(value) => {
+                setPhotoA(value);
+              }}
+              upload={(file) => uploadPhoto(code, "wedding", file)}
+              value={photoA}
+            />
+            <PhotoUploader
+              label="男生照片"
+              onChange={(value) => {
+                setPhotoB(value);
+              }}
+              upload={(file) => uploadPhoto(code, "wedding", file)}
+              value={photoB}
+            />
           </div>
           <p className="bg-primary/5 text-foreground flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] leading-5 font-medium">
             <ShieldCheck className="text-primary size-4 shrink-0" strokeWidth={1.8} />
-            隐私承诺：不会保存你上传的照片，仅用于本次生成。
+            隐私承诺：上传照片仅用于本次生成，24 小时内自动删除。
           </p>
         </section>
 
@@ -99,7 +128,7 @@ function WeddingPage() {
               </span>
             </div>
           ) : undefined}
-          {state.images.length > 0 || generateMutation.isPending ? (
+          {isGenerating || state.images.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {state.images.map((image) => (
                 <button
@@ -123,12 +152,12 @@ function WeddingPage() {
                   </span>
                 </button>
               ))}
-              {generateMutation.isPending ? (
-                <GeneratingTile pose={generateMutation.variables.pose} />
+              {isGenerating && generatingPose !== undefined ? (
+                <GeneratingTile pose={generatingPose} />
               ) : undefined}
             </div>
           ) : undefined}
-          <div className={generateMutation.isPending ? "hidden" : undefined}>
+          <div className={isGenerating ? "hidden" : undefined}>
             <PosePicker
               actionDisabled={state.remaining === 0}
               actionLabel={actionLabel(state.remaining)}
@@ -139,9 +168,9 @@ function WeddingPage() {
               triggerHint={hasPhotos ? "选系列和姿态，生成透明底婚纱照" : "请先上传两张人像照片"}
               triggerLabel={state.images.length === 0 ? "选一个姿态开始生成" : "再生成一张婚纱照"}
             />
-            {generateMutation.error ? (
+            {generateMutation.error || resume.error ? (
               <p className="text-destructive mt-4 text-center text-sm" role="alert">
-                {generateMutation.error.message}
+                {generateMutation.error?.message ?? resume.error}
               </p>
             ) : undefined}
           </div>

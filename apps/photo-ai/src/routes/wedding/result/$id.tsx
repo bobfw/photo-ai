@@ -7,8 +7,10 @@ import { z } from "zod";
 import { CenteredMessage } from "#components/centered-message";
 import { RetryImage } from "#components/retry-image";
 import { useImageSource } from "#hooks/use-image-source";
+import { useResumeGeneration } from "#hooks/use-resume-generation";
 import { proxyImageUrl } from "#lib/image-proxy";
 import { cn } from "#lib/utils";
+import { waitForGeneration } from "#lib/wait-for-generation";
 import { Button } from "#ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 
@@ -35,14 +37,14 @@ export const Route = createFileRoute("/wedding/result/$id")({
     if (!image) {
       throw redirect({ to: "/wedding", search: { code: validCode } });
     }
-    return { code: validCode, image };
+    return { activeTasks: state.activeTasks, code: validCode, image };
   },
   pendingComponent: () => <CenteredMessage>正在读取照片…</CenteredMessage>,
   component: ResultPage,
 });
 
 function ResultPage() {
-  const { code, image: initialImage } = Route.useLoaderData();
+  const { activeTasks, code, image: initialImage } = Route.useLoaderData();
   const navigate = useNavigate();
   const { faces, hasPhotos } = useWeddingPhotos();
   const [image, setImage] = useState(initialImage);
@@ -54,8 +56,13 @@ function ResultPage() {
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");
   const [isModifyOpen, setIsModifyOpen] = useState(false);
-  const bannerError = error || (source ? sourceError : "");
-  const isShowSourceRetry = !error && Boolean(sourceError) && Boolean(source);
+  const [isConfirmingRegenerate, setIsConfirmingRegenerate] = useState(false);
+  const resumeTask = activeTasks.find(
+    (task) => task.kind !== "generate" && task.imageId === initialImage.id,
+  );
+  const resume = useResumeGeneration(code, "wedding", resumeTask?.id, setImage);
+  const bannerError = error || (source ? sourceError : "") || resume.error;
+  const isShowSourceRetry = !error && !resume.error && Boolean(sourceError) && Boolean(source);
 
   useEffect(() => {
     setError("");
@@ -66,8 +73,18 @@ function ResultPage() {
   }, []);
 
   const editMutation = useMutation({
-    mutationFn: (text: string) =>
-      editGeneratedImage({ data: { code, imageId: image.id, url: image.url, instruction: text } }),
+    mutationFn: async (text: string) => {
+      const { taskId } = await editGeneratedImage({
+        data: {
+          code,
+          clientToken: crypto.randomUUID(),
+          imageId: image.id,
+          url: image.url,
+          instruction: text,
+        },
+      });
+      return waitForGeneration(code, "wedding", taskId);
+    },
     onSuccess: (updated) => {
       setInstruction("");
       setImage(updated);
@@ -76,14 +93,19 @@ function ResultPage() {
   });
 
   const regenerateMutation = useMutation({
-    mutationFn: () => regenerateWedding({ data: { code, imageId: image.id, faces } }),
+    mutationFn: async () => {
+      const { taskId } = await regenerateWedding({
+        data: { code, clientToken: crypto.randomUUID(), imageId: image.id, faces },
+      });
+      return waitForGeneration(code, "wedding", taskId);
+    },
     onSuccess: (updated) => {
       setImage(updated);
       setIsModifyOpen(false);
     },
   });
 
-  const isModifying = editMutation.isPending || regenerateMutation.isPending;
+  const isModifying = editMutation.isPending || regenerateMutation.isPending || resume.isResuming;
   const editDisabled = isModifying || image.remainingEdits === 0 || instruction.trim() === "";
   const regenerateDisabled = isModifying || !hasPhotos || image.remainingEdits === 0;
   const modifyError = editMutation.error ?? regenerateMutation.error;
@@ -148,6 +170,19 @@ function ResultPage() {
             </div>
           ) : undefined}
 
+          {resume.isResuming ? (
+            <div
+              className="border-border bg-card mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+              role="status"
+            >
+              <Loader2
+                aria-hidden
+                className="text-primary size-4 shrink-0 animate-spin motion-reduce:animate-none"
+              />
+              正在完成之前提交的{resumeTask?.kind === "regenerate" ? "重新生成" : "修改"}…
+            </div>
+          ) : undefined}
+
           {source ? (
             <WeddingEditor
               onError={handleEditorError}
@@ -194,6 +229,7 @@ function ResultPage() {
 
           editMutation.reset();
           regenerateMutation.reset();
+          setIsConfirmingRegenerate(false);
         }}
         open={isModifyOpen}
       >
@@ -263,9 +299,13 @@ function ResultPage() {
                 className="text-primary mt-0.5 size-4 shrink-0 animate-spin motion-reduce:animate-none"
               />
               <span>
-                {editMutation.isPending ? "正在修改这张图…" : "正在重新生成…"}
+                {resume.isResuming
+                  ? "正在完成之前的修改…"
+                  : editMutation.isPending
+                    ? "正在修改这张图…"
+                    : "正在重新生成…"}
                 <span className="text-muted-foreground block">
-                  预计 20 秒–2 分钟，请勿刷新页面。
+                  预计 20 秒–2 分钟，刷新后可自动继续。
                 </span>
               </span>
             </div>
@@ -302,24 +342,55 @@ function ResultPage() {
           </div>
           <div className="border-border/60 space-y-2 border-t pt-4">
             <p className="text-sm font-medium">完全不满意，重新生成</p>
-            <Button
-              className="h-11 w-full"
-              disabled={regenerateDisabled}
-              onClick={() => {
-                regenerateMutation.mutate();
-              }}
-              type="button"
-              variant="outline"
-            >
-              {regenerateMutation.isPending ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
-                  重新生成中…
-                </span>
-              ) : (
-                "重新生成"
-              )}
-            </Button>
+            {isConfirmingRegenerate ? (
+              <>
+                <p className="text-muted-foreground text-xs">
+                  将消耗 1 次修改次数，当前版本会保留在历史版本里。
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    className="h-11 flex-1"
+                    onClick={() => {
+                      setIsConfirmingRegenerate(false);
+                    }}
+                    type="button"
+                    variant="outline"
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    className="h-11 flex-1"
+                    disabled={regenerateDisabled}
+                    onClick={() => {
+                      setIsConfirmingRegenerate(false);
+                      regenerateMutation.mutate();
+                    }}
+                    type="button"
+                  >
+                    确认重新生成
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button
+                className="h-11 w-full"
+                disabled={regenerateDisabled}
+                onClick={() => {
+                  setIsConfirmingRegenerate(true);
+                }}
+                type="button"
+                variant="outline"
+              >
+                {regenerateMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+                    重新生成中…
+                  </span>
+                ) : (
+                  "重新生成"
+                )}
+              </Button>
+            )}
           </div>
           <p className="text-muted-foreground text-xs">{modifyHint}</p>
           {modifyError ? (

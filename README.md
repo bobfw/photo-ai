@@ -2,7 +2,7 @@
 
 pnpm workspace monorepo。
 
-- `apps/photo-ai` — AI 婚纱照 / 形象照生成，跑在 Cloudflare Workers 上（D1 + R2）。
+- `apps/photo-ai` — AI 婚纱照 / 形象照生成，跑在 Cloudflare Workers 上（D1）。
 
 新应用放在 `apps/<name>`；跨应用共享代码放在 `packages/<name>`。
 
@@ -19,7 +19,7 @@ pnpm voucher:create -- --total 3 --count 5
 ```
 
 密钥放在 `apps/photo-ai/.dev.vars`（从 `apps/photo-ai/.dev.vars.example` 复制，填入
-ARK_API_KEY）。
+ARK_MEDIAKIT_API_KEY 和七牛的 QINIU_* 配置）。
 
 根目录的脚本都会转发到 `apps/photo-ai`；也可以 `cd apps/photo-ai` 后直接运行。
 
@@ -36,8 +36,11 @@ pnpm db:migrate:remote           # 应用到线上 D1
 
 ```bash
 wrangler d1 create photo-ai      # 把返回的 database_id 填进 wrangler.jsonc
-wrangler r2 bucket create photo-ai-images
-wrangler secret put ARK_API_KEY
+# 七牛桶 chupiandate：绑定 HTTPS 自定义域名，配置 temp_24h/ 的 1 天生命周期规则
+wrangler secret put ARK_MEDIAKIT_API_KEY
+wrangler secret put QINIU_ACCESS_KEY
+wrangler secret put QINIU_SECRET_KEY
+wrangler secret put QINIU_PUBLIC_URL
 ```
 
 在仓库根目录部署：

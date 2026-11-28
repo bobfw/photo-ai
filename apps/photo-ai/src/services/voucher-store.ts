@@ -1,9 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server";
-import { env } from "cloudflare:workers";
 import { and, eq, gt } from "drizzle-orm";
 
 import { database } from "./database.ts";
-import { isStoredImage } from "./images.ts";
 import { generatedImages, generationRecords, vouchers } from "./schema.ts";
 import { IMAGE_TTL_MS, type ImageVersion, type PublicImage } from "./voucher-types.ts";
 
@@ -74,6 +72,8 @@ export function appendVersion(
   version: ImageVersion,
 ): ImageVersion[] {
   const versions = readVersions(row.versions);
+  // 轮询重复完成时同一个结果只记一次
+  if (versions.at(-1)?.url === version.url) return versions;
   if (versions.every((item) => item.url !== row.imageUrl)) {
     versions.push({ url: row.imageUrl, createdAt: row.createdAt });
   }
@@ -105,18 +105,6 @@ export function toPublicImage(
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
   };
-}
-
-// 生成结果固定是 PNG：新图从 Ark 读，老数据在 R2；服务端读取不受 CORS 限制。
-export async function loadImageDataUrl(source: string) {
-  if (isStoredImage(source)) {
-    const object = await env.BUCKET.get(source);
-    if (!object) throw new Error("当前图片已过期");
-    return `data:image/png;base64,${Buffer.from(await object.arrayBuffer()).toString("base64")}`;
-  }
-  const response = await fetch(source);
-  if (!response.ok) throw new Error(`读取当前图片失败（${response.status}）`);
-  return `data:image/png;base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
 }
 
 export async function loadImageRow(voucherId: number, imageId: number) {

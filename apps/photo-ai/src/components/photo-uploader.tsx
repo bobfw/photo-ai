@@ -1,32 +1,42 @@
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import type { PhotoValue } from "#lib/upload-photo";
+
 const MAX_EDGE = 2048;
 
-async function fileToDataUrl(file: File): Promise<string> {
+async function fileToPng(file: File): Promise<Blob> {
   if (!file.type.startsWith("image/")) throw new Error("请选择图片文件");
 
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
+  try {
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
 
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("无法读取这张照片");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("无法读取这张照片");
 
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL("image/png");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/png");
+    });
+    if (!blob) throw new Error("无法读取这张照片");
+    return blob;
+  } finally {
+    bitmap.close();
+  }
 }
 
 interface PhotoUploaderProperties {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: PhotoValue | undefined;
+  upload: (file: Blob) => Promise<string>;
+  onChange: (value?: PhotoValue) => void;
 }
 
-export function PhotoUploader({ label, value, onChange }: PhotoUploaderProperties) {
+export function PhotoUploader({ label, value, upload, onChange }: PhotoUploaderProperties) {
   const inputReference = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,13 +45,26 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
     if (!file) return;
     setError("");
     setIsProcessing(true);
+    let previewUrl = "";
     try {
-      onChange(await fileToDataUrl(file));
+      const blob = await fileToPng(file);
+      // 预览只用本地 Blob，七牛地址只在服务端签给 MediaKit
+      previewUrl = URL.createObjectURL(blob);
+      const key = await upload(blob);
+      if (value) URL.revokeObjectURL(value.previewUrl);
+      onChange({ key, previewUrl });
+      previewUrl = "";
     } catch (error) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setError(error instanceof Error ? error.message : "读取照片失败");
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  function remove() {
+    if (value) URL.revokeObjectURL(value.previewUrl);
+    onChange();
   }
 
   return (
@@ -60,7 +83,11 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
 
       {value ? (
         <div className="border-border relative overflow-hidden rounded-xl border">
-          <img alt={`${label}预览`} className="aspect-square w-full object-cover" src={value} />
+          <img
+            alt={`${label}预览`}
+            className="aspect-square w-full object-cover"
+            src={value.previewUrl}
+          />
           <div className="absolute inset-x-2 bottom-2 flex gap-2">
             <button
               className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong h-11 flex-1 rounded-full text-xs font-semibold shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
@@ -68,15 +95,13 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
               onClick={() => inputReference.current?.click()}
               type="button"
             >
-              {isProcessing ? "处理中…" : "更换"}
+              {isProcessing ? "上传中…" : "更换"}
             </button>
             <button
               aria-label={`移除${label}`}
               className="bg-background/60 text-foreground active:bg-background/90 ease-out-strong flex h-11 w-11 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition duration-150 active:scale-95 disabled:opacity-60"
               disabled={isProcessing}
-              onClick={() => {
-                onChange("");
-              }}
+              onClick={remove}
               type="button"
             >
               <X className="size-4" />
@@ -98,7 +123,7 @@ export function PhotoUploader({ label, value, onChange }: PhotoUploaderPropertie
               <ImagePlus className="size-6" strokeWidth={1.8} />
             )}
           </span>
-          <span className="text-sm font-semibold">{isProcessing ? "正在处理" : "点击上传"}</span>
+          <span className="text-sm font-semibold">{isProcessing ? "正在上传" : "点击上传"}</span>
           <span className="text-muted-foreground text-xs">
             {isProcessing ? "请稍候" : "清晰 · 单人"}
           </span>

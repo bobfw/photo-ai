@@ -11,8 +11,8 @@ function TermsPage() {
         <header className="border-border/60 border-b pb-6">
           <h1 className="font-heading text-2xl">用户协议</h1>
           <p className="text-muted-foreground mt-1 text-[13px]">隐私政策及人像照片处理授权说明</p>
-          <p className="text-muted-foreground mt-4 text-xs">更新日期：2026 年 11 月 18 日</p>
-          <p className="text-muted-foreground text-xs">生效日期：2026 年 11 月 18 日</p>
+          <p className="text-muted-foreground mt-4 text-xs">更新日期：2026 年 11 月 28 日</p>
+          <p className="text-muted-foreground text-xs">生效日期：2026 年 11 月 28 日</p>
         </header>
 
         <article className="text-foreground/80 [&_h2]:font-heading [&_h2]:text-foreground [&_h3]:text-foreground [&_hr]:border-border/60 [&_strong]:text-foreground mt-6 text-sm leading-7 [&_h2]:mt-10 [&_h2]:text-lg [&_h2]:leading-snug [&_h3]:mt-5 [&_h3]:font-medium [&_hr]:my-10 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5 [&_p]:mt-3 [&_strong]:font-medium [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
@@ -53,7 +53,11 @@ function TermsPage() {
             <li>不会安排人工客服查看用户上传的照片。</li>
           </ol>
           <p>
-            为完成服务，第三方服务商可能对照片进行必要的临时处理、缓存或安全审核，具体处理及保存规则以其适用的服务协议和隐私政策为准。
+            为完成生成，照片会先临时上传至对象存储，再由第三方 AI 模型服务商读取。临时文件将在 24
+            小时内自动删除。
+          </p>
+          <p>
+            第三方服务商可能对照片进行必要的临时处理、缓存或安全审核，具体处理及保存规则以其适用的服务协议和隐私政策为准。
           </p>
 
           <h2>三、生成图片及保存期限</h2>

@@ -30,6 +30,8 @@ function RootDocument({ children }: { children: ReactNode }) {
         <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
         <meta content="#ffffff" name="theme-color" />
         <meta content="light" name="color-scheme" />
+        {/* 凭证码在 URL 里，避免通过 Referer 泄漏 */}
+        <meta content="no-referrer" name="referrer" />
         <title>出片 · AI</title>
         <HeadContent />
       </head>

@@ -194,7 +194,7 @@ export function PosePicker({
           </label>
           <DialogDescription>
             将消耗 1 张额度，预计 20 秒–2
-            分钟，生成时请勿刷新页面。生成后可以换背景、加贴纸，再保存到手机。
+            分钟，刷新后可自动继续。生成后可以换背景、加贴纸，再保存到手机。
           </DialogDescription>
           <div className="flex gap-2">
             <Button

@@ -7,8 +7,10 @@ import { z } from "zod";
 import { CenteredMessage } from "#components/centered-message";
 import { RetryImage } from "#components/retry-image";
 import { useImageSource } from "#hooks/use-image-source";
+import { useResumeGeneration } from "#hooks/use-resume-generation";
 import { proxyImageUrl } from "#lib/image-proxy";
 import { cn } from "#lib/utils";
+import { waitForGeneration } from "#lib/wait-for-generation";
 import { Button } from "#ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "#ui/dialog";
 
@@ -30,14 +32,14 @@ export const Route = createFileRoute("/portrait/result/$id")({
     if (!image) {
       throw redirect({ to: "/portrait", search: { code: validCode } });
     }
-    return { code: validCode, image };
+    return { activeTasks: state.activeTasks, code: validCode, image };
   },
   pendingComponent: () => <CenteredMessage>正在读取照片…</CenteredMessage>,
   component: PortraitResultPage,
 });
 
 function PortraitResultPage() {
-  const { code, image: initialImage } = Route.useLoaderData();
+  const { activeTasks, code, image: initialImage } = Route.useLoaderData();
   const navigate = useNavigate();
   const [image, setImage] = useState(initialImage);
   const styleTitle = findPortraitStyle(image.series)?.title ?? image.series;
@@ -47,8 +49,12 @@ function PortraitResultPage() {
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");
   const [isModifyOpen, setIsModifyOpen] = useState(false);
-  const bannerError = error || (source ? sourceError : "");
-  const isShowSourceRetry = !error && Boolean(sourceError) && Boolean(source);
+  const resumeTask = activeTasks.find(
+    (task) => task.kind !== "generate" && task.imageId === initialImage.id,
+  );
+  const resume = useResumeGeneration(code, "portrait", resumeTask?.id, setImage);
+  const bannerError = error || (source ? sourceError : "") || resume.error;
+  const isShowSourceRetry = !error && !resume.error && Boolean(sourceError) && Boolean(source);
 
   useEffect(() => {
     setError("");
@@ -59,8 +65,18 @@ function PortraitResultPage() {
   }, []);
 
   const editMutation = useMutation({
-    mutationFn: (text: string) =>
-      editPortraitImage({ data: { code, imageId: image.id, url: image.url, instruction: text } }),
+    mutationFn: async (text: string) => {
+      const { taskId } = await editPortraitImage({
+        data: {
+          code,
+          clientToken: crypto.randomUUID(),
+          imageId: image.id,
+          url: image.url,
+          instruction: text,
+        },
+      });
+      return waitForGeneration(code, "portrait", taskId);
+    },
     onSuccess: (updated) => {
       setInstruction("");
       setImage(updated);
@@ -68,7 +84,7 @@ function PortraitResultPage() {
     },
   });
 
-  const isModifying = editMutation.isPending;
+  const isModifying = editMutation.isPending || resume.isResuming;
   const editDisabled = isModifying || image.remainingEdits === 0 || instruction.trim() === "";
 
   function goBack() {
@@ -127,6 +143,19 @@ function PortraitResultPage() {
                   重试
                 </button>
               ) : undefined}
+            </div>
+          ) : undefined}
+
+          {resume.isResuming ? (
+            <div
+              className="border-border bg-card mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+              role="status"
+            >
+              <Loader2
+                aria-hidden
+                className="text-primary size-4 shrink-0 animate-spin motion-reduce:animate-none"
+              />
+              正在完成之前提交的修改…
             </div>
           ) : undefined}
 
@@ -242,9 +271,9 @@ function PortraitResultPage() {
                 className="text-primary mt-0.5 size-4 shrink-0 animate-spin motion-reduce:animate-none"
               />
               <span>
-                正在修改这张图…
+                {resume.isResuming ? "正在完成之前的修改…" : "正在修改这张图…"}
                 <span className="text-muted-foreground block">
-                  预计 20 秒–2 分钟，请勿刷新页面。
+                  预计 20 秒–2 分钟，刷新后可自动继续。
                 </span>
               </span>
             </div>

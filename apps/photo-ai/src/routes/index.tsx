@@ -50,7 +50,9 @@ function WelcomePage() {
             <ShieldCheck className="text-primary mt-0.5 size-5 shrink-0" strokeWidth={1.8} />
             <p className="text-[13px] leading-5">
               <span className="font-semibold">隐私承诺</span>
-              <span className="text-muted-foreground">：上传的照片仅用于本次生成，不会保存。</span>
+              <span className="text-muted-foreground">
+                ：上传的照片仅用于本次生成，24 小时内自动删除。
+              </span>
             </p>
           </div>
         </section>
